@@ -69,6 +69,13 @@
         "mac": "Command+Shift+C"
       },
       "description": "Copy current URL"
+    },
+    "pip": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+P",
+        "mac": "Command+Shift+P"
+      },
+      "description": "Picture-in-picture for the page's video"
     }
   },
   "side_panel": {

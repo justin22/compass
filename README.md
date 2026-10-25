@@ -8,7 +8,7 @@ Chrome extension, no build step, no dependencies.
 
 ## Highlights
 
-- **[Command bar](#command-bar)**: `Cmd+T` searches open tabs, bookmarks, history and the web from one box. `Cmd+1` to `Cmd+9` opens a favorite, `Cmd+Shift+C` copies the page address.
+- **[Command bar](#command-bar)**: `Cmd+T` searches open tabs, bookmarks, history and the web from one box. `Cmd+1` to `Cmd+9` opens a favorite, `Cmd+Shift+C` copies the page address, `Cmd+Shift+P` pops a video out.
 - **[Sidebar](#sidebar)**: your tabs in a vertical list. `Cmd+Shift+S`, or rest your mouse on the left edge.
 - **[Pinned](#pinned)**: tabs you keep, in folders, at the top of the sidebar. They sync as bookmarks.
 - **[Auto-archive](#auto-archive)**: tabs you haven't touched in 12 hours close themselves and stay searchable.
@@ -50,6 +50,10 @@ Tabs you want to keep, at the top of the sidebar. Click the pin on a tab to pin 
 ### Copy URL
 
 `Cmd+Shift+C` copies the current page address. No popup, no confirmation.
+
+### Picture-in-picture
+
+`Cmd+Shift+P` pops the video on the page out into a small floating window that stays on top. Press it again to put it back. If there are several videos, it picks the one playing, or else the biggest. Videos embedded from another site (like a YouTube video inside a blog post) aren't picked up yet.
 
 ### Auto-archive
 
