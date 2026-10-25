@@ -35,8 +35,9 @@
   #dock:hover { background: var(--hover); color: var(--fg); }
   #dock svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   html:not(.embed) #dock svg { fill: currentColor; } /* filled pin = docked */
-  .new { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 10px; border: 0; border-radius: 8px; background: none; color: var(--muted); font: inherit; text-align: left; }
+  .new { display: flex; align-items: center; gap: 10px; width: 100%; height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--muted); font: inherit; text-align: left; }
   .new:hover { background: var(--hover); }
+  #new { margin-bottom: 2px; } /* keeps its hover apart from the tab cursor row below */
   .new svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .rename { padding: 2px 4px; margin-left: -4px; border: 0; outline: 0; border-radius: 4px; background: var(--tile); color: var(--fg); font: inherit; user-select: text; }
   .new span { width: 16px; text-align: center; font-size: 16px; line-height: 1; }
