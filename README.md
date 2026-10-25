@@ -8,6 +8,10 @@ Chrome extension, no build step, no dependencies.
 
 ## What it does
 
+![The sidebar: favorites, Pinned with a folder, and open tabs](docs/sidebar.png)
+
+![The command bar: favorites and one search box for tabs, bookmarks, history and the web](docs/command-bar.png)
+
 **Command bar** (`Cmd+T` or `Cmd+Shift+K`)
 
 A search box that pops up over the page. Cmd+T closes the blank new tab and opens the bar over the page you were on instead, so you may see a brief flash. Type anything and it finds open tabs, bookmarks, history and archived tabs in one list. Type a web address and it opens it. Type anything else and it searches the web.
