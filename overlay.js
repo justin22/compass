@@ -1,10 +1,12 @@
 // Injected on demand. Block scope so re-injecting doesn't redeclare consts.
 {
-  const view = globalThis.arcBarView ?? 'bar'; // 'bar' or 'sidebar', set by background.js just before injecting
+  const view = globalThis.arcBarView ?? 'bar'; // 'bar', 'sidebar' or 'switch', set by background.js just before injecting
   const hover = globalThis.arcBarHover ?? false; // opened by resting on the left edge: no dim, leaves when the mouse does
   const old = document.getElementById('arc-bar-overlay');
-  old?.arcClose?.(); old?.remove(); // remove() also clears overlays left by an older version
-  if (old?.dataset.view !== view) { // same shortcut again toggles it off; the other one swaps views
+  const again = view === 'switch' && old?.dataset.view === 'switch'; // the switcher's shortcut again steps to the next tile
+  if (again) old.arcNext();
+  else { old?.arcClose?.(); old?.remove(); } // remove() also clears overlays left by an older version
+  if (!again && old?.dataset.view !== view) { // same shortcut again toggles it off; the other one swaps views
     // A modal <dialog> sits in the browser's top layer: above any z-index, page dialogs, popovers and fullscreen.
     const dialog = document.createElement('dialog');
     dialog.id = 'arc-bar-overlay';
@@ -43,6 +45,7 @@
         .panel.sidebar.slide { translate: -12px 0; transition: opacity 200ms cubic-bezier(0.32, 0.72, 0, 1), translate 200ms cubic-bezier(0.32, 0.72, 0, 1); }
         .panel.sidebar.slide.in { translate: 0 0; }
         .scrim.hover { background: transparent; }
+        .panel.switch { top: 50%; left: 50%; translate: -50% -50%; width: calc(100vw - 48px); height: calc(100vh - 48px); border-radius: 20px; } /* room to lay out, then shrinks to its tiles */
         iframe { display: block; width: 100%; height: 100%; border: 0; background: transparent; color-scheme: normal; }
         @media (prefers-color-scheme: dark) {
           .panel { background: rgb(28 28 30 / .58); border-color: rgb(255 255 255 / .12); box-shadow: 0 24px 60px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 255 255 / .08); }
@@ -50,12 +53,12 @@
         @media (prefers-reduced-motion: reduce) { .panel.sidebar.slide { translate: 0 0; transition-property: opacity; } } /* keep the fade, drop the movement */
       </style>
       <div class="scrim ${view} ${hover ? 'hover' : ''}"></div>
-      <div class="panel ${view} ${hover ? 'slide' : ''}"><iframe allowtransparency="true" title="${view === 'bar' ? 'Command bar' : 'Sidebar'}"></iframe></div>`;
+      <div class="panel ${view} ${hover ? 'slide' : ''}"><iframe allowtransparency="true" title="${{ bar: 'Command bar', sidebar: 'Sidebar', switch: 'Tab switcher' }[view]}"></iframe></div>`;
 
     const scrim = root.querySelector('.scrim');
     const panel = root.querySelector('.panel');
     const frame = root.querySelector('iframe');
-    frame.src = chrome.runtime.getURL(`${view}.html`);
+    frame.src = chrome.runtime.getURL(`${view}.html`) + (view === 'switch' ? `?w=${innerWidth - 48}` : ''); // the frame's own size isn't settled when it first runs
 
     const close = () => { dialog.remove(); removeEventListener('message', onMessage); };
     const onMessage = e => {
@@ -63,6 +66,7 @@
       if (e.data?.arcBar === 'close') close();
       if (e.data?.arcBar === 'height') {
         if (view === 'bar') panel.style.height = `${e.data.h}px`; // sidebar is full height via CSS
+        if (view === 'switch') { panel.style.height = `${Math.min(e.data.h, innerHeight - 48)}px`; panel.style.width = `${e.data.w}px`; }
         if (!panel.classList.contains('in')) { // reveal scrim + panel together once sized: no flash
           panel.classList.add('in');
           scrim.classList.add('in');
@@ -76,6 +80,7 @@
     };
     addEventListener('message', onMessage);
     dialog.arcClose = close;
+    dialog.arcNext = () => frame.contentWindow?.postMessage({ arcBar: 'next' }, '*');
     scrim.onclick = close;
     if (hover) scrim.onmousemove = e => { if (e.clientX > panel.getBoundingClientRect().right + 40) close(); }; // 40px grace
     dialog.addEventListener('cancel', e => { e.preventDefault(); close(); }); // Esc while focus is on the page

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Switch tab</title>
+<style>
+  :root { --fg: #1c1c1e; --tile: rgb(0 0 0 / .06); --ring: #5b5bd6; }
+  @media (prefers-color-scheme: dark) { :root { --fg: #f2f2f7; --tile: rgb(255 255 255 / .08); --ring: #8f8fff; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: var(--fg); font: 13px/1.3 system-ui, sans-serif; user-select: none; } /* no background: the overlay's glass panel shows through */
+  #strip { display: grid; gap: 10px; width: fit-content; max-width: 100%; max-height: 100vh; padding: 14px; overflow-y: auto; scrollbar-width: none; outline: 0; } /* columns set by switch.js to fit the window */
+  .tab { flex: none; width: 200px; padding: 6px; border-radius: 14px; outline: 3px solid transparent; outline-offset: -3px; }
+  .tab.sel { outline-color: var(--ring); background: var(--tile); }
+  .shot { display: grid; place-items: center; height: 124px; border-radius: 9px; background: var(--tile); overflow: hidden; }
+  .shot img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+  .shot img.fav { width: 28px; height: 28px; } /* no preview yet: favicon on grey */
+  .cap { display: flex; align-items: center; gap: 7px; padding: 8px 4px 2px; }
+  .cap img { width: 16px; height: 16px; flex: none; }
+  .cap span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>
+</head>
+<body>
+<div id="strip" role="listbox" aria-label="Open tabs" tabindex="-1"></div>
+<script type="module" src="switch.js"></script>
+</body>
+</html>

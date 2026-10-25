@@ -19,6 +19,7 @@ Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for 
 | `content.js` | Edge hover: mouse resting on the left edge for 150ms asks the background to open the floating sidebar. |
 | `bar.html` / `bar.js` | Command bar: search tabs, bookmarks, history, archived tabs; site search engines (`ENGINES`); favorites with Cmd+1..9. |
 | `sidebar.html` / `sidebar.js` | Sidebar. Runs two ways: floating in the overlay iframe (`embed`), or docked in the native side panel. |
+| `switch.html` / `switch.js` | Tab switcher: a grid of the window's tabs by `lastAccessed` (row flow, next = right; columns fit the window, min two rows), with previews. Overlay only. The shortcut again steps to the next tile (`arcNext` in `overlay.js`); releasing the modifier picks. |
 | `favs.js` | Shared by bar and sidebar: Favorites and Pinned (both bookmark folders), favicon URLs, URL detection, `painted()`. |
 | `archive.js` | Pure `staleTabs()` rule for auto-archive, checked by `archive.test.mjs`. |
 
@@ -28,6 +29,7 @@ Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for 
 - These are not Chrome's pinned tabs (`tab.pinned`). Pinning a Chrome-pinned tab moves it into the Pinned folder and unpins it in Chrome.
 - A pinned item "has a tab" when an open tab's URL starts with the bookmark URL (`isUnder`). Loose, on purpose. That tab shows only in Pinned, not in the tab list.
 - `chrome.storage.local` also holds `archive` (closed tabs, max 500) and `closedFolders` (collapsed Pinned folders).
+- Tab previews live in `chrome.storage.session` as `shot<tabId>` (JPEG data URL, 320px wide). `background.js` captures the active tab 400ms after activation or load and drops the key on `tabs.onRemoved`.
 - Auto-archive skips active, pinned, audible tabs and anything under a Favorite or Pinned URL.
 
 ### Sidebar internals (`sidebar.js`)

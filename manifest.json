@@ -41,7 +41,8 @@
     {
       "resources": [
         "bar.html",
-        "sidebar.html"
+        "sidebar.html",
+        "switch.html"
       ],
       "matches": [
         "<all_urls>"
@@ -50,11 +51,14 @@
   ],
   "commands": {
     "open-bar": {
+      "description": "Open command bar"
+    },
+    "switch-tab": {
       "suggested_key": {
         "default": "Ctrl+Shift+K",
         "mac": "Command+Shift+K"
       },
-      "description": "Open command bar"
+      "description": "Switch tab"
     },
     "open-sidebar": {
       "suggested_key": {
