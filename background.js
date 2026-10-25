@@ -78,12 +78,13 @@ async function copyUrl(tab) {
 }
 
 // Picture-in-picture (Cmd+Shift+P): pop out the page's main video, or bring it back. Injected, so self-contained.
-// ponytail: top frame only, so videos inside iframes (embeds) are skipped; allFrames + picking one frame if that's missed
+// ponytail: top frame and light DOM only, so videos inside iframes (embeds) or shadow roots are skipped; allFrames + picking one frame if that's missed
 function pipInPage() {
   if (document.pictureInPictureElement) return document.exitPictureInPicture();
   const area = v => v.clientWidth * v.clientHeight;
   const videos = [...document.querySelectorAll('video')].filter(v => v.readyState && area(v));
-  const video = videos.find(v => !v.paused) ?? videos.sort((a, b) => area(b) - area(a))[0]; // playing wins, then biggest
+  videos.sort((a, b) => area(b) - area(a));
+  const video = videos.find(v => !v.paused) ?? videos[0]; // biggest playing, else biggest
   if (!video) return;
   video.removeAttribute('disablepictureinpicture'); // some sites opt out; the user asked for it
   return video.requestPictureInPicture();

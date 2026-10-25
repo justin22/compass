@@ -54,7 +54,7 @@ Tabs you want to keep, at the top of the sidebar. Click the pin on a tab to pin 
 
 ### Picture-in-picture
 
-`Cmd+Shift+P` pops the video on the page out into a small floating window that stays on top. Press it again to put it back. If there are several videos, it picks the one playing, or else the biggest. Videos embedded from another site (like a YouTube video inside a blog post) aren't picked up yet.
+`Cmd+Shift+P` pops the video on the page out into a small floating window that stays on top. Press it again on the same page to put it back. If there are several videos, it picks the biggest one that is playing, or else the biggest. On Windows and Linux the default `Ctrl+Shift+P` may clash with the browser's print shortcut; change it at `chrome://extensions/shortcuts` if it doesn't fire. Videos embedded from another site (like a YouTube video inside a blog post) aren't picked up yet.
 
 ### Auto-archive
 
