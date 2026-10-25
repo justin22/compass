@@ -1,21 +1,23 @@
 import { listFavs, pinnedTree, linksIn } from './favs.js';
 import { staleTabs } from './archive.js';
 
+// resolves to whether anything opened
 async function openOverlay(windowId, view, hover = false) {
-  const [tab] = await chrome.tabs.query({ active: true, windowId });
   try {
+    const [tab] = await chrome.tabs.query({ active: true, windowId });
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: (v, h) => { globalThis.arcBarView = v; globalThis.arcBarHover = h; }, args: [view, hover] });
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['overlay.js'] });
+    return true;
   } catch (e) {
     // chrome:// pages and the Web Store block scripts: fall back to the toolbar popup
-    if (view === 'bar') await chrome.action.openPopup({ windowId }).catch(e => console.warn('Compass: could not open', e));
-    else console.warn('Compass: sidebar blocked on this page', e);
+    if (view === 'bar') return chrome.action.openPopup({ windowId }).then(() => true, e => (console.warn('Compass: could not open', e), false));
+    console.warn('Compass: sidebar blocked on this page', e);
+    return false;
   }
 }
 
-// the native side panel already shows the sidebar: don't draw a second one over the page.
-// runtime.getContexts doesn't report Helium's side panel, so ask the panel itself: only a docked panel for this window answers
-const docked = windowId => chrome.runtime.sendMessage({ dockedIn: windowId }).then(Boolean, () => false); // rejects when no extension page is listening
+// runtime.getContexts doesn't report Helium's side panel, so ask: only a docked panel for this window answers (rejects when nothing listens)
+const docked = windowId => chrome.runtime.sendMessage({ dockedIn: windowId }).then(Boolean, () => false);
 
 chrome.commands.onCommand.addListener((command, tab) => {
   const windowId = tab?.windowId ?? chrome.windows.WINDOW_ID_CURRENT;
@@ -24,7 +26,7 @@ chrome.commands.onCommand.addListener((command, tab) => {
   if (command === 'open-sidebar') {
     // can't draw on browser pages: use the native side panel there (must stay synchronous to keep the keypress gesture)
     if (/^https?:/.test(tab?.url ?? '')) docked(windowId).then(d => { if (!d) openOverlay(windowId, 'sidebar'); });
-    else chrome.sidePanel.open({ windowId });
+    else chrome.sidePanel.open({ windowId }).catch(e => console.warn('Compass: could not open the side panel', e));
   }
 });
 
@@ -37,14 +39,19 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
 });
 
 // Cmd+T: swap the blank new tab for the command bar, like Arc
+let restoring = false; // the new tab put back after a failed swap must not be swapped again
 chrome.tabs.onCreated.addListener(async tab => {
-  if (!/^chrome:\/\/new-?tab/.test(tab.pendingUrl || tab.url)) return;
+  if (restoring || !/^chrome:\/\/new-?tab/.test(tab.pendingUrl || tab.url)) return;
   if (tab.index === 0) return; // the only tab of a new window: closing it would close the window (index > 0 proves a sibling without another round trip)
   await chrome.tabs.remove(tab.id); // the new tab is already painted by now: the brief flash is the price of Cmd+T being a browser shortcut
-  openOverlay(tab.windowId, 'bar');
+  if (await openOverlay(tab.windowId, 'bar')) return;
+  restoring = true; // nowhere to draw the bar (e.g. a chrome:// page underneath): give the new tab back
+  await chrome.tabs.create({ windowId: tab.windowId }).catch(() => {});
+  restoring = false;
 });
 
 // Copy URL (Cmd+Shift+C): copy in the page, silently. Injected, so it must be self-contained.
+// ponytail: the fallback copies inside the page, so a page's own `copy` listener could swap the text; an offscreen document would avoid that
 function copyInPage(url) {
   const fallback = () => {
     const prev = document.activeElement;

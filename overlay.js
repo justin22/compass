@@ -9,6 +9,7 @@
     const dialog = document.createElement('dialog');
     dialog.id = 'arc-bar-overlay';
     dialog.dataset.view = view;
+    dialog.setAttribute('aria-label', 'Compass');
     dialog.style.cssText = 'all: initial; display: block; position: fixed; inset: 0; width: 100vw; height: 100vh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: transparent; overflow: visible;';
     dialog.innerHTML = '<style>#arc-bar-overlay::backdrop { background: transparent; }</style>';
     const host = document.createElement('div');
@@ -49,7 +50,7 @@
         @media (prefers-reduced-motion: reduce) { .panel.sidebar.slide { translate: 0 0; transition-property: opacity; } } /* keep the fade, drop the movement */
       </style>
       <div class="scrim ${view} ${hover ? 'hover' : ''}"></div>
-      <div class="panel ${view} ${hover ? 'slide' : ''}"><iframe allowtransparency="true"></iframe></div>`;
+      <div class="panel ${view} ${hover ? 'slide' : ''}"><iframe allowtransparency="true" title="${view === 'bar' ? 'Command bar' : 'Sidebar'}"></iframe></div>`;
 
     const scrim = root.querySelector('.scrim');
     const panel = root.querySelector('.panel');

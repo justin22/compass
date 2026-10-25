@@ -3,7 +3,7 @@
   "name": "Compass",
   "version": "0.1.0",
   "description": "An Arc-style command bar and sidebar: one search box for everything, pinned tabs in folders, and old tabs that tidy themselves.",
-  "minimum_chrome_version": "116",
+  "minimum_chrome_version": "127",
   "permissions": [
     "tabs",
     "history",

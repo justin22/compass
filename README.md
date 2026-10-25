@@ -37,7 +37,7 @@ Chrome extension, no build step, no dependencies.
 
 ### Favorites
 
-Your top sites, shown as icons in both the bar and the sidebar. Press `+` to add the current page, `×` to remove one. They are stored as a "Favorites" bookmark folder, so they sync and you can edit them in the bookmark manager.
+Your top sites, shown as icons in both the bar and the sidebar. Press `+` to add the current page, `×` (or the Delete key on a focused icon) to remove one. They are stored as a "Favorites" bookmark folder, so they sync and you can edit them in the bookmark manager.
 
 ### Pinned
 
@@ -57,11 +57,30 @@ Every 30 minutes, tabs you have not touched in 12 hours close on their own. They
 
 ## Install
 
+Compass is not on the Chrome Web Store. You load it straight from this repository, which works in Helium, Chrome, Edge and Brave.
+
+**Get the code**
+
+Either clone it:
+
+```
+git clone https://github.com/justin22/compass.git
+```
+
+Or on the [GitHub page](https://github.com/justin22/compass) click **Code**, then **Download ZIP**, and unzip it somewhere you will keep it. The browser loads the extension from this folder every time it starts, so don't delete or move it afterwards.
+
+**Load it in the browser**
+
 1. Open `chrome://extensions` (in Edge, `edge://extensions`).
 2. Turn on **Developer mode** (top right).
-3. Click **Load unpacked** and pick this folder.
+3. Click **Load unpacked** and pick the folder you just cloned or unzipped.
+4. Press `Cmd+Shift+S` on any web page. The sidebar should slide in.
 
 On Windows and Linux the shortcuts use `Ctrl+Shift` instead of `Cmd+Shift`. You can change them at `chrome://extensions/shortcuts`.
+
+**Update**
+
+Run `git pull` in the folder (or download the ZIP again and replace the folder's contents), then open `chrome://extensions` and click the reload icon on the Compass card. Pages that were already open need a refresh before the edge hover works on them again.
 
 ## Set up Helium
 

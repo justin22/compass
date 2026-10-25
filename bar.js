@@ -1,4 +1,4 @@
-import { favicon, hasScheme, looksLikeUrl, listFavs, addFav, removeFav, openTabFor, favTile, addTile, painted } from './favs.js';
+import { favicon, hasScheme, looksLikeUrl, listFavs, addFav, removeBookmark, openTabFor, favTile, addTile, painted } from './favs.js';
 
 const input = document.querySelector('input');
 const list = document.querySelector('ul');
@@ -28,8 +28,8 @@ const ENGINES = [
   { name: 'ChatGPT', url: 'https://chatgpt.com/?q=%s' },
   { name: 'Claude', url: 'https://claude.ai/new?q=%s' },
 ];
-const engineHome = e => new URL(e.url.replace('%s', '')).origin;
-for (const e of ENGINES) e.keys = [e.name, new URL(engineHome(e)).hostname.replace(/^www\./, ''), ...(e.alias ?? [])].map(k => k.toLowerCase());
+const engineHome = e => new URL(e.url).origin;
+for (const e of ENGINES) e.keys = [e.name, ...(e.alias ?? [])].map(k => k.toLowerCase());
 
 if (embed) document.documentElement.classList.add('embed');
 
@@ -41,7 +41,7 @@ async function search(q) {
   const site = !/\s/.test(q) && (lower.length >= 2 || lower === 'x') && ENGINES.find(e => e.keys.some(k => k.startsWith(lower)));
   const siteRow = site ? [{ kind: 'Engine', title: `Search ${site.name}`, label: 'Press Tab', url: engineHome(site), engine: site }] : [];
 
-  const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+  const terms = lower.split(/\s+/).filter(Boolean);
   // ponytail: all-terms substring match, swap in fuzzy scoring if ranking feels off
   const hit = x => terms.every(t => `${x.title} ${x.url}`.toLowerCase().includes(t));
 
@@ -73,8 +73,12 @@ function render() {
   list.replaceChildren(...items.map((x, i) => {
     const li = document.createElement('li');
     li.className = i === sel ? 'sel' : '';
+    li.id = `r${i}`;
+    li.role = 'option';
+    li.ariaSelected = i === sel;
     const img = document.createElement('img');
     img.src = x.engine ? favicon(engineHome(x.engine)) : x.url ? favicon(x.url) : SEARCH_ICON; // the engine is the browser's default, which extensions can't read
+    img.alt = '';
     const t = document.createElement('span');
     t.className = 't';
     t.textContent = x.title;
@@ -87,6 +91,7 @@ function render() {
     return li;
   }));
   list.children[sel]?.scrollIntoView({ block: 'nearest' });
+  input.setAttribute('aria-activedescendant', items.length ? `r${sel}` : '');
 }
 
 async function go(x) {
@@ -114,7 +119,7 @@ async function renderFavs() {
     ...favs.map((fav, i) => favTile(fav, {
       title: `${fav.title}${i < 9 ? `  (⌘${i + 1})` : ''}`,
       onOpen: () => openFav(fav),
-      onRemove: async () => { await removeFav(fav); renderFavs(); input.focus(); },
+      onRemove: async () => { await removeBookmark(fav); renderFavs(); input.focus(); },
     })),
     addTile(async () => {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });

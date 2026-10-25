@@ -28,12 +28,13 @@ export async function addFav(tab) {
   await chrome.bookmarks.create({ parentId: (await favFolder()).id, title: tab.title, url: tab.url });
 }
 
-export const removeFav = fav => chrome.bookmarks.remove(fav.id);
+export const removeBookmark = b => chrome.bookmarks.remove(b.id); // a favorite or a pinned item
 
 // ponytail: "already open" = any tab under the favorite's URL; track tab ids per favorite if that's too loose
-export const isUnder = (url, fav) => !!url?.startsWith(fav.url.replace(/\/$/, ''));
+// (also lets https://x.com match https://x.community: the trailing slash is dropped so https://x.com/a matches https://x.com/a?b)
+export const isUnder = (url, base) => !!url?.startsWith(base.replace(/\/$/, ''));
 export async function openTabFor(fav) {
-  return (await chrome.tabs.query({})).find(t => isUnder(t.url, fav));
+  return (await chrome.tabs.query({})).find(t => isUnder(t.url, fav.url));
 }
 
 // Pinned: Arc-style saved tabs in a "Pinned" bookmarks folder. Its subfolders are the sidebar's folders;
@@ -56,12 +57,14 @@ export function favTile(fav, { title = fav.title, onOpen, onRemove }) {
   b.title = title;
   const img = document.createElement('img');
   img.src = favicon(fav.url);
+  img.alt = '';
   const x = document.createElement('span'); // span, not button: buttons can't nest
   x.className = 'x';
   x.textContent = '×';
   x.title = 'Remove from favorites';
   b.append(img, x);
   b.onclick = e => { if (e.target !== x) return onOpen(); e.stopPropagation(); onRemove(); };
+  b.onkeydown = e => { if (e.key === 'Delete' || e.key === 'Backspace') { e.stopPropagation(); onRemove(); } }; // the × can't take focus
   return b;
 }
 

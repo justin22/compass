@@ -1,4 +1,4 @@
-import { favicon, hasScheme, looksLikeUrl, listFavs, addFav, removeFav, openTabFor, isUnder, pinnedTree, linksIn, addPin, favTile, addTile, painted } from './favs.js';
+import { favicon, hasScheme, looksLikeUrl, listFavs, addFav, removeBookmark, openTabFor, isUnder, pinnedTree, linksIn, addPin, favTile, addTile, painted } from './favs.js';
 
 const favsEl = document.querySelector('#favs');
 const tabsEl = document.querySelector('#tabs');
@@ -17,7 +17,12 @@ const closedFolders = new Set((await chrome.storage.local.get('closedFolders')).
 
 function setCursor(id) {
   cursorId = id;
-  for (const li of tabsEl.children) li.classList.toggle('cursor', +li.dataset.id === id);
+  for (const li of tabsEl.children) {
+    const on = +li.dataset.id === id;
+    li.classList.toggle('cursor', on);
+    li.ariaSelected = on;
+  }
+  tabsEl.setAttribute('aria-activedescendant', id == null ? '' : `t${id}`);
   tabsEl.querySelector('.cursor')?.scrollIntoView({ block: 'nearest' });
 }
 
@@ -47,11 +52,12 @@ async function openFav(fav) {
   chrome.tabs.create({ url: fav.url, windowId });
 }
 
+// add and remove re-render through the bookmarks listeners below
 async function renderFavs() {
   favsEl.replaceChildren(
-    ...(await listFavs()).map(fav => favTile(fav, { onOpen: () => openFav(fav), onRemove: () => removeFav(fav) })),
+    ...(await listFavs()).map(fav => favTile(fav, { onOpen: () => openFav(fav), onRemove: () => removeBookmark(fav) })),
     addTile(async () => addFav((await chrome.tabs.query({ active: true, windowId }))[0])),
-  ); // re-renders itself through the bookmarks listeners below
+  );
 }
 
 function closeButton(t) {
@@ -83,7 +89,7 @@ function label(text) {
 // --- Pinned: saved tabs and folders from the "Pinned" bookmarks folder, above the open tabs.
 const FOLDER = '<svg viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>';
 const FOLDER_OPEN = '<svg viewBox="0 0 24 24"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg>';
-const openTabIn = (tabs, b) => tabs.find(t => isUnder(t.url || t.pendingUrl, b));
+const openTabIn = (tabs, b) => tabs.find(t => isUnder(t.url || t.pendingUrl, b.url));
 
 // inline name edit: Enter or click away saves, Escape keeps the old name
 function renameField(b) {
@@ -116,6 +122,7 @@ function pinnedRows(node, tabs, depth = 0) {
       li.className = 'folder';
       li.dataset.folder = b.id; // a row dropped here goes in this folder
       if (open) li.dataset.open = '1';
+      li.ariaExpanded = open;
       li.innerHTML = open ? FOLDER_OPEN : FOLDER;
       const del = document.createElement('button');
       del.className = 'x';
@@ -146,14 +153,14 @@ function pinnedRows(node, tabs, depth = 0) {
     const tab = openTabIn(tabs, b);
     li.className = !tab ? 'closed' : tab.active ? 'active' : '';
     li.dataset.folder = node.id; // a tab dropped on a row files into the folder it sits in
-    li.title = `${b.title}\nRight-click to unpin`;
+    li.title = b.title;
     const img = document.createElement('img');
     img.src = favicon(b.url);
+    img.alt = '';
     li.append(img, label(b.title || b.url));
-    li.append(pinButton(true, () => removeFav(b)));
+    li.append(pinButton(true, () => removeBookmark(b)));
     if (tab) li.append(closeButton(tab)); // closes the tab, keeps the pin
     li.onclick = () => { if (!suppressClick) tab ? activate(tab) : openFav(b); };
-    li.oncontextmenu = e => { e.preventDefault(); removeFav(b); };
     return [li];
   });
 }
@@ -169,10 +176,14 @@ function tabItem(t) {
   const li = document.createElement('li');
   li.className = t.active ? 'active' : '';
   li.dataset.id = t.id;
+  li.id = `t${t.id}`;
+  li.role = 'option';
   li.classList.toggle('cursor', t.id === cursorId);
+  li.ariaSelected = t.id === cursorId;
   li.onmousemove = () => { if (cursorId !== t.id) setCursor(t.id); }; // one highlight, whether mouse or keys
   const img = document.createElement('img');
   img.src = favicon(t.url || t.pendingUrl);
+  img.alt = '';
   const title = document.createElement('span');
   title.className = 't';
   const text = document.createElement('span');
@@ -193,7 +204,7 @@ function tabItem(t) {
   li.onmouseenter = () => {
     const over = title.scrollWidth - title.clientWidth;
     if (over <= 0) return;
-    text.style.translate = `-${over}px 0`; // set on the span itself, not via a variable on the row
+    text.style.translate = `-${over}px 0`;
     text.style.transitionDuration = `${Math.max(0.6, over / 60)}s`; // ~60px/s, steady speed whatever the length
     li.classList.add('marquee');
   };
@@ -239,11 +250,11 @@ function press(li, e, spec) {
     updateDrag(dy);
     if (spec.cross) hoverFolder(ev);
   };
-  const up = () => {
+  const up = ev => {
     li.removeEventListener('pointermove', move);
     li.removeEventListener('pointerup', up);
     li.removeEventListener('pointercancel', up);
-    if (drag) endDrag();
+    if (drag) endDrag(ev.type === 'pointercancel'); // a cancelled drag (window lost focus, touch scroll) puts the row back
   };
   li.addEventListener('pointermove', move);
   li.addEventListener('pointerup', up);
@@ -302,10 +313,10 @@ function hoverFolder(ev) {
   if (id) (pinnedEl.querySelector(`.folder[data-folder="${id}"]`) ?? pinnedEl).classList.add('drop');
 }
 
-function endDrag() {
+function endDrag(cancelled) {
   clearDrop();
   const d = drag;
-  if (d.folder) { // into a folder: everything slides back, then the row moves there on re-render
+  if (d.folder || cancelled) { // everything slides back; a folder drop then moves the row there on re-render
     d.j = d.i;
     d.rows.forEach(r => { if (r.li !== d.li) r.li.style.translate = ''; });
   }
@@ -319,7 +330,7 @@ function endDrag() {
   suppressClick = true;
   setTimeout(() => { suppressClick = false; });
   setTimeout(async () => {
-    try { await spec.commit(d); } catch {} // a failed move just re-renders as it was
+    if (!cancelled) try { await spec.commit(d); } catch {} // a failed move just re-renders as it was
     drag = null;
     await render(); // rebuilt in the new order, which already matches what's on screen: no jump
     spec.list.classList.remove('reordering');
@@ -339,7 +350,7 @@ async function render() {
   for (const t of loose) tabsById.set(t.id, t);
   if (!tabsById.has(cursorId)) cursorId = loose.find(t => t.active)?.id ?? null; // start on the current tab
   tabsEl.replaceChildren(...loose.map(tabItem)); // Chrome-pinned tabs come first in tab order already
-  tabsEl.querySelector('.cursor')?.scrollIntoView({ block: 'nearest' });
+  setCursor(cursorId);
 }
 
 // ponytail: full re-render on any tab event, fine for normal tab counts; diff the DOM if it ever lags
@@ -395,16 +406,17 @@ urlEl.onkeydown = e => {
 };
 const copy = document.querySelector('#copy');
 copy.onclick = () => {
-  navigator.clipboard.writeText(activeUrl());
-  copy.classList.add('done'); // link icon -> check for a second
-  setTimeout(() => copy.classList.remove('done'), 1000);
+  navigator.clipboard.writeText(activeUrl()).then(() => {
+    copy.classList.add('done');
+    setTimeout(() => copy.classList.remove('done'), 1000);
+  }, e => console.warn('Compass: copy failed', e));
 };
 
-// clock, 12-hour + date; re-arms on each minute boundary
+// clock, re-armed on each minute boundary
 const clock = document.querySelector('#clock');
 const tick = () => {
   const now = new Date();
-  const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+  const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const date = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
   clock.textContent = `${date} · ${time}`;
   setTimeout(tick, 60000 - (Date.now() % 60000));

@@ -13,6 +13,7 @@ const tabs = [
   tab(6, { url: 'https://fav.com/inbox' }),      // under a favorite
   tab(7, { url: 'chrome://settings' }),          // browser page
   tab(8, { lastAccessed: undefined }),           // unknown age
+  tab(9, { incognito: true }),                   // private: never written to disk
 ];
 assert.deepStrictEqual(staleTabs(tabs, ['https://fav.com/'], now).map(t => t.id), [1]);
 console.log('archive ok');

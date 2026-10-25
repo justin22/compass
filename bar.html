@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <title>New Tab</title>
@@ -43,9 +43,9 @@
   <div id="favs"></div>
   <div class="field">
     <span id="pill" hidden><img alt=""><span></span></span>
-    <input placeholder="Search tabs, bookmarks, history or the web" autofocus spellcheck="false">
+    <input placeholder="Search tabs, bookmarks, history or the web" aria-label="Search" role="combobox" aria-expanded="true" aria-autocomplete="list" aria-controls="results" autofocus spellcheck="false">
   </div>
-  <ul></ul>
+  <ul id="results" role="listbox"></ul>
 </div>
 <script type="module" src="bar.js"></script>
 </body>

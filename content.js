@@ -8,7 +8,7 @@
     if (!nearEdge(e)) return cancel();
     // ponytail: fixed 150ms dwell so passing by doesn't trigger; make it a setting if it feels off
     timer ??= setTimeout(open, 150); // stays set until the mouse moves off the edge: one open per visit
-  }, { passive: true });
+  });
   document.addEventListener('mouseout', e => {
     if (e.relatedTarget) return; // moving between elements, still on the page
     // left the page through its left side: browser UI (e.g. collapsed vertical tabs) sits between the page and the
