@@ -23,6 +23,7 @@ chrome.commands.onCommand.addListener((command, tab) => {
   const windowId = tab?.windowId ?? chrome.windows.WINDOW_ID_CURRENT;
   if (command === 'open-bar') openOverlay(windowId, 'bar');
   if (command === 'copy-url') copyUrl(tab);
+  if (command === 'pip') pip(tab);
   if (command === 'open-sidebar') {
     // can't draw on browser pages: use the native side panel there (must stay synchronous to keep the keypress gesture)
     if (/^https?:/.test(tab?.url ?? '')) docked(windowId).then(d => { if (!d) openOverlay(windowId, 'sidebar'); });
@@ -74,6 +75,25 @@ async function copyUrl(tab) {
   if (!tab?.url) return;
   await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: copyInPage, args: [tab.url] })
     .catch(e => console.warn('Compass: can\'t copy on this page', e)); // browser pages block scripts
+}
+
+// Picture-in-picture (Cmd+Shift+P): pop out the page's main video, or bring it back. Injected, so self-contained.
+// ponytail: top frame and light DOM only, so videos inside iframes (embeds) or shadow roots are skipped; allFrames + picking one frame if that's missed
+function pipInPage() {
+  if (document.pictureInPictureElement) return document.exitPictureInPicture();
+  const area = v => v.clientWidth * v.clientHeight;
+  const videos = [...document.querySelectorAll('video')].filter(v => v.readyState && area(v));
+  videos.sort((a, b) => area(b) - area(a));
+  const video = videos.find(v => !v.paused) ?? videos[0]; // biggest playing, else biggest
+  if (!video) return;
+  video.removeAttribute('disablepictureinpicture'); // some sites opt out; the user asked for it
+  return video.requestPictureInPicture();
+}
+
+function pip(tab) {
+  // no await before this: the shortcut's user gesture has to carry into the page for requestPictureInPicture
+  chrome.scripting.executeScript({ target: { tabId: tab?.id }, func: pipInPage })
+    .catch(e => console.warn('Compass: no picture-in-picture on this page', e));
 }
 
 // Auto-archive: every 30 min, close tabs untouched for 12h, saving them first so the bar can find them.
