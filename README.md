@@ -6,33 +6,40 @@ A command bar and sidebar for Chrome and other Chromium browsers (Helium, Edge, 
 
 Chrome extension, no build step, no dependencies.
 
+## Highlights
+
+- **[Command bar](#command-bar)**: `Cmd+T` searches open tabs, bookmarks, history and the web from one box. `Cmd+1` to `Cmd+9` opens a favorite, `Cmd+Shift+C` copies the page address.
+- **[Sidebar](#sidebar)**: your tabs in a vertical list. `Cmd+Shift+S`, or rest your mouse on the left edge.
+- **[Pinned](#pinned)**: tabs you keep, in folders, at the top of the sidebar. They sync as bookmarks.
+- **[Auto-archive](#auto-archive)**: tabs you haven't touched in 12 hours close themselves and stay searchable.
+
 ## What it does
 
 ![The sidebar: favorites, Pinned with a folder, and open tabs](docs/sidebar.png)
 
 ![The command bar: favorites and one search box for tabs, bookmarks, history and the web](docs/command-bar.png)
 
-**Command bar** (`Cmd+T` or `Cmd+Shift+K`)
+### Command bar
 
-A search box that pops up over the page. Cmd+T closes the blank new tab and opens the bar over the page you were on instead, so you may see a brief flash. Type anything and it finds open tabs, bookmarks, history and archived tabs in one list. Type a web address and it opens it. Type anything else and it searches the web.
+`Cmd+T` or `Cmd+Shift+K`. A search box that pops up over the page. Cmd+T closes the blank new tab and opens the bar over the page you were on instead, so you may see a brief flash. Type anything and it finds open tabs, bookmarks, history and archived tabs in one list. Type a web address and it opens it. Type anything else and it searches the web.
 
 - Press Enter on an empty bar to jump back to the last tab you were on.
 - Type a site name like `yt` or `reddit`, press Tab, and search that site directly. Google, Gmail, Amazon, Reddit, LinkedIn, YouTube, GitHub, X, Wikipedia, Maps, Perplexity, ChatGPT and Claude are built in.
 - Your favorites sit at the top. `Cmd+1` to `Cmd+9` opens them.
 
-**Sidebar** (`Cmd+Shift+S`, or rest your mouse on the left edge of the window)
+### Sidebar
 
-A vertical list of your open tabs, floating over the page. Click a tab to switch to it. Drag to reorder. Middle-click to close.
+`Cmd+Shift+S`, or rest your mouse on the left edge of the window. A vertical list of your open tabs, floating over the page. Click a tab to switch to it. Drag to reorder. Middle-click to close.
 
 - An address field at the top shows the current site. Click it to edit, Enter to navigate.
 - A pin button keeps the sidebar open as a docked side panel. Click it again to close.
 - Arrow keys move through tabs, Enter opens one, Escape closes the sidebar.
 
-**Favorites**
+### Favorites
 
 Your top sites, shown as icons in both the bar and the sidebar. Press `+` to add the current page, `×` to remove one. They are stored as a "Favorites" bookmark folder, so they sync and you can edit them in the bookmark manager.
 
-**Pinned**
+### Pinned
 
 Tabs you want to keep, at the top of the sidebar. Click the pin on a tab to pin it, or drag it up into Pinned. Click a pinned tab to open it, and click its pin again to unpin. Pinned tabs are stored as a "Pinned" bookmark folder, so they sync.
 
@@ -40,11 +47,11 @@ Tabs you want to keep, at the top of the sidebar. Click the pin on a tab to pin 
 - Drag to reorder, or drop onto a folder to put it inside.
 - `×` on a folder deletes it and everything in it.
 
-**Copy URL** (`Cmd+Shift+C`)
+### Copy URL
 
-Copies the current page address. No popup, no confirmation.
+`Cmd+Shift+C` copies the current page address. No popup, no confirmation.
 
-**Auto-archive**
+### Auto-archive
 
 Every 30 minutes, tabs you have not touched in 12 hours close on their own. They are saved first, so the command bar can still find them. Pinned items, favorites, the active tab and anything playing audio are left alone.
 
