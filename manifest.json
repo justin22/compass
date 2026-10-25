@@ -1,0 +1,88 @@
+{
+  "manifest_version": 3,
+  "name": "Compass",
+  "version": "0.1.0",
+  "description": "An Arc-style command bar and sidebar: one search box for everything, pinned tabs in folders, and old tabs that tidy themselves.",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "tabs",
+    "history",
+    "bookmarks",
+    "search",
+    "favicon",
+    "scripting",
+    "sidePanel",
+    "alarms",
+    "storage",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "icons": {
+    "16": "icons/compass-modern-16.png",
+    "32": "icons/compass-modern-32.png",
+    "48": "icons/compass-modern-48.png",
+    "128": "icons/compass-modern-128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/compass-modern-16.png",
+      "32": "icons/compass-modern-32.png"
+    },
+    "default_popup": "bar.html",
+    "default_title": "Command bar"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "bar.html",
+        "sidebar.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "commands": {
+    "open-bar": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+K",
+        "mac": "Command+Shift+K"
+      },
+      "description": "Open command bar"
+    },
+    "open-sidebar": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Toggle sidebar"
+    },
+    "copy-url": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+C",
+        "mac": "Command+Shift+C"
+      },
+      "description": "Copy current URL"
+    }
+  },
+  "side_panel": {
+    "default_path": "sidebar.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
