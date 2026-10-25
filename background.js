@@ -11,7 +11,7 @@ async function openOverlay(windowId, view, hover = false) {
   } catch (e) {
     // chrome:// pages and the Web Store block scripts: fall back to the toolbar popup
     if (view === 'bar') return chrome.action.openPopup({ windowId }).then(() => true, e => (console.warn('Compass: could not open', e), false));
-    console.warn('Compass: sidebar blocked on this page', e);
+    console.warn(`Compass: ${view} blocked on this page`, e);
     return false;
   }
 }
@@ -24,6 +24,7 @@ chrome.commands.onCommand.addListener((command, tab) => {
   if (command === 'open-bar') openOverlay(windowId, 'bar');
   if (command === 'copy-url') copyUrl(tab);
   if (command === 'pip') pip(tab);
+  if (command === 'switch-tab') openOverlay(windowId, 'switch');
   if (command === 'open-sidebar') {
     // can't draw on browser pages: use the native side panel there (must stay synchronous to keep the keypress gesture)
     if (/^https?:/.test(tab?.url ?? '')) docked(windowId).then(d => { if (!d) openOverlay(windowId, 'sidebar'); });
@@ -95,6 +96,30 @@ function pip(tab) {
   chrome.scripting.executeScript({ target: { tabId: tab?.id }, func: pipInPage })
     .catch(e => console.warn('Compass: no picture-in-picture on this page', e));
 }
+
+// Tab previews for the switcher: a shot of the tab you're looking at, taken when you arrive and when it finishes loading.
+// storage.session is memory only: gone when the browser closes, nothing on disk. Removed when the tab closes.
+// ponytail: no pruning; if the 10MB session quota fills, set() throws and newer tabs just show the favicon tile. Drop the oldest if that bites
+const shotTimers = new Map(); // one pending shot per window; captureVisibleTab is rate limited
+function shoot(windowId, tabId) {
+  clearTimeout(shotTimers.get(windowId));
+  shotTimers.set(windowId, setTimeout(async () => {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, windowId });
+      if (tab?.id !== tabId || !/^https?:/.test(tab.url)) return; // moved on already, or a browser page (capture is refused there anyway)
+      const bmp = await createImageBitmap(await (await fetch(await chrome.tabs.captureVisibleTab(windowId, { format: 'jpeg', quality: 60 }))).blob());
+      const w = 320, h = Math.round(bmp.height * w / bmp.width);
+      const canvas = new OffscreenCanvas(w, h);
+      canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
+      const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.7 });
+      const data = await new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(blob); });
+      await chrome.storage.session.set({ [`shot${tabId}`]: data });
+    } catch {} // minimized window, rate limit, quota: no shot this time, the old one stays
+  }, 400)); // let the page settle after the switch or load
+}
+chrome.tabs.onActivated.addListener(({ tabId, windowId }) => shoot(windowId, tabId));
+chrome.tabs.onUpdated.addListener((tabId, info, tab) => { if (info.status === 'complete' && tab.active) shoot(tab.windowId, tabId); });
+chrome.tabs.onRemoved.addListener(tabId => chrome.storage.session.remove(`shot${tabId}`)); // closed by hand or by auto-archive
 
 // Auto-archive: every 30 min, close tabs untouched for 12h, saving them first so the bar can find them.
 async function archiveStale() {

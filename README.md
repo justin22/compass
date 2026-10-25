@@ -10,6 +10,7 @@ Chrome extension, no build step, no dependencies.
 
 - **[Command bar](#command-bar)**: `Cmd+T` searches open tabs, bookmarks, history and the web from one box. `Cmd+1` to `Cmd+9` opens a favorite, `Cmd+Shift+C` copies the page address.
 - **[Sidebar](#sidebar)**: your tabs in a vertical list. `Cmd+Shift+S`, or rest your mouse on the left edge.
+- **[Tab switcher](#tab-switcher)**: `Cmd+Shift+K` shows your recent tabs as previews. Press again to step through, let go to switch.
 - **[Pinned](#pinned)**: tabs you keep, in folders, at the top of the sidebar. They sync as bookmarks.
 - **[Picture-in-picture](#picture-in-picture)**: `Cmd+Shift+P` pops the page's video into a floating window that stays on top.
 - **[Auto-archive](#auto-archive)**: tabs you haven't touched in 12 hours close themselves and stay searchable.
@@ -22,7 +23,7 @@ Chrome extension, no build step, no dependencies.
 
 ### Command bar
 
-`Cmd+T` or `Cmd+Shift+K`. A search box that pops up over the page. Cmd+T closes the blank new tab and opens the bar over the page you were on instead, so you may see a brief flash. Type anything and it finds open tabs, bookmarks, history and archived tabs in one list. Type a web address and it opens it. Type anything else and it searches the web.
+`Cmd+T`, or click the Compass icon in the toolbar. A search box that pops up over the page. Cmd+T closes the blank new tab and opens the bar over the page you were on instead, so you may see a brief flash. Type anything and it finds open tabs, bookmarks, history and archived tabs in one list. Type a web address and it opens it. Type anything else and it searches the web.
 
 - Press Enter on an empty bar to jump back to the last tab you were on.
 - Type a site name like `yt` or `reddit`, press Tab, and search that site directly. Google, Gmail, Amazon, Reddit, LinkedIn, YouTube, GitHub, X, Wikipedia, Maps, Perplexity, ChatGPT and Claude are built in.
@@ -35,6 +36,14 @@ Chrome extension, no build step, no dependencies.
 - An address field at the top shows the current site. Click it to edit, Enter to navigate.
 - A pin button keeps the sidebar open as a docked side panel. Click it again to close.
 - Arrow keys move through tabs, Enter opens one, Escape closes the sidebar.
+
+### Tab switcher
+
+`Cmd+Shift+K`. The tabs in this window as a grid, most recent first, each with a small picture of the page. It starts on the tab you were on before, so one press and release jumps back. Hold `Cmd` and press `Shift+K` again to step through them, then let go to switch. Or use the arrow keys and Enter, or click a tab. Escape closes it.
+
+- A tab you haven't looked at since the browser started shows its icon on grey instead of a picture. The picture appears once you visit it.
+- Pictures are kept in memory only and are gone when the browser closes.
+- If you installed Compass before this feature existed, `Cmd+Shift+K` may still be set to open the command bar. Move it at `chrome://extensions/shortcuts`.
 
 ### Favorites
 
@@ -109,6 +118,7 @@ Leave the rest off.
 | `content.js` | Watches for the mouse resting on the left edge |
 | `bar.html` / `bar.js` | The command bar |
 | `sidebar.html` / `sidebar.js` | The sidebar |
+| `switch.html` / `switch.js` | The tab switcher |
 | `favs.js` | Favorites and Pinned, shared by the bar and the sidebar |
 | `archive.js` | Decides which tabs are stale enough to close |
 | `archive.test.mjs` | One check for the archive logic |
