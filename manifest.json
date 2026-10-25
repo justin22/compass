@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Compass",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "An Arc-style command bar and sidebar: one search box for everything, pinned tabs in folders, and old tabs that tidy themselves.",
   "minimum_chrome_version": "127",
   "permissions": [
