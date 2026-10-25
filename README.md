@@ -116,6 +116,12 @@ node archive.test.mjs
 
 Prints `archive ok` if the archive rules still hold.
 
+## Contributing
+
+Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md)
+before starting. Pull requests with a user-visible change need a short video
+showing its impact.
+
 ## Things to know
 
 - The overlay cannot draw on browser pages like `chrome://settings` or the Web Store. The bar falls back to the toolbar popup there, and the sidebar opens as the native side panel.
