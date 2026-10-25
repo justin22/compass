@@ -89,14 +89,6 @@ Leave the rest off.
 | `archive.js` | Decides which tabs are stale enough to close |
 | `archive.test.mjs` | One check for the archive logic |
 
-## Package
-
-```
-zip -r compass-$(node -p "require('./manifest.json').version").zip manifest.json *.js *.html icons/compass-modern-{16,32,48,128}.png
-```
-
-Makes the zip to upload to the Chrome Web Store, with only the files the extension needs.
-
 ## Test
 
 ```

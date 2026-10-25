@@ -1,0 +1,64 @@
+# Compass: notes for agents
+
+Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for Helium, works in Chromium browsers. The README is the user guide; this file is how the code works and how to change it.
+
+## Ground rules
+
+- **No build step, no dependencies, no TypeScript.** Plain ES modules loaded straight from the folder. The owner turned down TS and `@ts-check`; don't add them, a bundler or npm packages.
+- **No human reviews this code.** The owner tests by using it. So keep changes small, read the code a change touches before editing, and say plainly what you did not test in a browser.
+- **Lazy and minimal.** Smallest working change, no abstractions for one caller, no settings for values that don't change. Corners cut on purpose get a `// ponytail:` comment naming the limit and the upgrade path.
+- **Match the code around you.** Short lowercase comments that say why, terse names, `replaceChildren` re-renders, no frameworks.
+- **README** is user-facing and kept simple: short sentences, no implementation detail. Update it when behaviour changes. The "no human has reviewed this code" notice stays at the top.
+
+## How it fits together
+
+| Piece | What it does |
+|---|---|
+| `background.js` | Service worker. Shortcuts, Cmd+T swap (closes the blank new tab, opens the bar), Copy URL, the 30-minute archive alarm. Injects `overlay.js` into the active tab to show the bar or sidebar. |
+| `overlay.js` | Draws a `<dialog>` with an iframe of `bar.html` or `sidebar.html` over the page. Talks to the frame with `postMessage` (`arcBar: 'close' / 'height' / 'focus'`). |
+| `content.js` | Edge hover: mouse resting on the left edge for 150ms asks the background to open the floating sidebar. |
+| `bar.html` / `bar.js` | Command bar: search tabs, bookmarks, history, archived tabs; site search engines (`ENGINES`); favorites with Cmd+1..9. |
+| `sidebar.html` / `sidebar.js` | Sidebar. Runs two ways: floating in the overlay iframe (`embed`), or docked in the native side panel. |
+| `favs.js` | Shared by bar and sidebar: Favorites and Pinned (both bookmark folders), favicon URLs, URL detection, `painted()`. |
+| `archive.js` | Pure `staleTabs()` rule for auto-archive, checked by `archive.test.mjs`. |
+
+### Data
+
+- **Favorites** = children of a "Favorites" bookmarks folder. **Pinned** = a "Pinned" bookmarks folder; its subfolders are the sidebar's folders. Folder ids are remembered in `chrome.storage.local` (`favFolderId`, `pinFolderId`) because a title search can hit the wrong folder.
+- These are not Chrome's pinned tabs (`tab.pinned`). Pinning a Chrome-pinned tab moves it into the Pinned folder and unpins it in Chrome.
+- A pinned item "has a tab" when an open tab's URL starts with the bookmark URL (`isUnder`). Loose, on purpose. That tab shows only in Pinned, not in the tab list.
+- `chrome.storage.local` also holds `archive` (closed tabs, max 500) and `closedFolders` (collapsed Pinned folders).
+- Auto-archive skips active, pinned, audible tabs and anything under a Favorite or Pinned URL.
+
+### Sidebar internals (`sidebar.js`)
+
+- `render()` rebuilds Pinned and the tab list from scratch. `schedule()` batches tab and bookmark events into one render, and holds off while a drag or a folder rename is in progress.
+- One drag system for both lists: `press` → `beginDrag` → `updateDrag` → `endDrag`, set up per list by a spec (`tabDrag`, `pinnedDrag`) giving the list, which rows it may pass, and `commit`. The row lifts and follows the pointer and the others slide aside. In Pinned, hovering the middle of a folder means "drop into it". A tab dragged up over Pinned files into the folder under the pointer (`hoverFolder`).
+- `renaming` is one-shot: the next render that draws the folder uses it up. Keep it that way, or a stale value pops the rename field on a later expand.
+- Deleting a non-empty folder asks once more on the button itself. No `alert` / `confirm` dialogs anywhere.
+
+## Gotchas
+
+- The overlay can't draw on `chrome://` pages or the Web Store. The bar falls back to the toolbar popup there, the sidebar to the native side panel.
+- `runtime.getContexts` doesn't report Helium's side panel, so the background asks the panel (`dockedIn` message) whether it's docked.
+- `chrome.sidePanel.open` needs a user gesture: call it first thing in the handler, before any `await`.
+- `chrome.bookmarks.move` within one folder: Chrome shifts the index itself when moving down. Don't adjust it again.
+- Bookmark changes have no undo. Anything that deletes bookmarks needs a confirm step.
+
+## Checking changes
+
+- `node archive.test.mjs` prints `archive ok`. The only automated check.
+- `node --check <file>.js` for syntax.
+- Everything else is manual: reload the extension at `chrome://extensions` and try it. Say so when you haven't.
+
+## Shipping
+
+Store zip, built from the project folder (zips are gitignored):
+
+```
+zip -r compass-$(node -p "require('./manifest.json').version").zip manifest.json *.js *.html icons/compass-modern-{16,32,48,128}.png
+```
+
+Bump `version` in `manifest.json` before each new store upload. The store rejects a version it has already seen.
+
+Git: `main` on `github.com/justin22/compass`. This repo's local git config commits as justin22 (noreply email) and pushes with justin22's gh token, so plain `git push` works. Commit or push only when asked.
