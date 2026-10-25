@@ -43,7 +43,7 @@ Your top sites, shown as icons in both the bar and the sidebar. Press `+` to add
 
 Tabs you want to keep, at the top of the sidebar. Click the pin on a tab to pin it, or drag it up into Pinned. Click a pinned tab to open it, and click its pin again to unpin. Pinned tabs are stored as a "Pinned" bookmark folder, so they sync.
 
-- **New Folder** adds a folder. Double-click a folder to rename it.
+- **New Folder** adds a folder. Double-click or right-click a folder to rename it.
 - Drag to reorder, or drop onto a folder to put it inside.
 - `×` on a folder deletes it and everything in it.
 
@@ -124,6 +124,6 @@ showing its impact.
 
 ## Things to know
 
-- The overlay cannot draw on browser pages like `chrome://settings` or the Web Store. The bar falls back to the toolbar popup there, and the sidebar opens as the native side panel.
+- The overlay cannot draw on browser pages like `chrome://settings` or the Web Store. The bar falls back to the toolbar popup there, and the sidebar opens as the native side panel. The browser decides which side that panel is on. In Chrome you can move it to the left at `chrome://settings/appearance` (**Side panel position**).
 - The 12 hour archive limit and the 150ms edge hover delay are fixed in code. Change them in `archive.js` and `content.js` if they feel wrong.
 - To add a search site, add a line to the `ENGINES` list in `bar.js`.

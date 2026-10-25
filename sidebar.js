@@ -15,7 +15,7 @@ let activeTab = null; // the tab the address field shows and navigates
 let renaming = null; // the Pinned folder to show as a name field on the next render (one-shot)
 const closedFolders = new Set((await chrome.storage.local.get('closedFolders')).closedFolders); // collapsed Pinned folders
 
-function setCursor(id) {
+function setCursor(id, scroll = false) {
   cursorId = id;
   for (const li of tabsEl.children) {
     const on = +li.dataset.id === id;
@@ -23,7 +23,7 @@ function setCursor(id) {
     li.ariaSelected = on;
   }
   tabsEl.setAttribute('aria-activedescendant', id == null ? '' : `t${id}`);
-  tabsEl.querySelector('.cursor')?.scrollIntoView({ block: 'nearest' });
+  if (scroll) tabsEl.querySelector('.cursor')?.scrollIntoView({ block: 'nearest' }); // keys only: a re-render (pin, new folder) keeps your scroll spot
 }
 
 if (embed) document.documentElement.classList.add('embed');
@@ -165,10 +165,10 @@ function pinnedRows(node, tabs, depth = 0) {
   });
 }
 
-// double-click a folder to rename it; on the list, since the first click already re-rendered the row
-pinnedEl.ondblclick = e => {
+// double-click or right-click a folder to rename it; on the list, since the first click already re-rendered the row
+pinnedEl.ondblclick = pinnedEl.oncontextmenu = e => {
   const f = e.target.closest('li.folder');
-  if (f) { renaming = f.dataset.folder; schedule(); }
+  if (f) { e.preventDefault(); renaming = f.dataset.folder; schedule(); }
 };
 const clearDrop = () => document.querySelectorAll('.drop').forEach(el => el.classList.remove('drop'));
 
@@ -437,7 +437,7 @@ addEventListener('keydown', e => {
     e.preventDefault(); // don't scroll the panel
     const ids = [...tabsById.keys()];
     const i = ids.indexOf(cursorId) + (e.key === 'ArrowDown' ? 1 : -1);
-    setCursor(ids[Math.max(0, Math.min(ids.length - 1, i))]); // stops at the ends, no wrap
+    setCursor(ids[Math.max(0, Math.min(ids.length - 1, i))], true); // stops at the ends, no wrap
   } else if (e.key === 'Enter' && !e.target.closest?.('button') && tabsById.has(cursorId)) { // a focused button handles its own Enter
     activate(tabsById.get(cursorId));
   } else if (e.key === 'Escape' && embed) {
