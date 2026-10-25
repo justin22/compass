@@ -6,6 +6,8 @@ A command bar and sidebar for Chrome and other Chromium browsers (Helium, Edge, 
 
 Chrome extension, no build step, no dependencies.
 
+[Highlights](#highlights) · [What it does](#what-it-does) · [Install](#install) · [Set up Helium](#set-up-helium) · [Files](#files) · [Test](#test) · [Contributing](#contributing) · [Things to know](#things-to-know)
+
 ## Highlights
 
 - **[Command bar](#command-bar)**: `Cmd+T` searches open tabs, bookmarks, history and the web from one box. `Cmd+1` to `Cmd+9` opens a favorite, `Cmd+Shift+C` copies the page address.
@@ -14,6 +16,8 @@ Chrome extension, no build step, no dependencies.
 - **[Pinned](#pinned)**: tabs you keep, in folders, at the top of the sidebar. They sync as bookmarks.
 - **[Picture-in-picture](#picture-in-picture)**: `Cmd+Shift+P` pops the page's video into a floating window that stays on top.
 - **[Auto-archive](#auto-archive)**: tabs you haven't touched in 12 hours close themselves and stay searchable.
+
+![All the shortcuts: Cmd+T command bar, Cmd+Shift+S sidebar, Cmd+Shift+K tab switcher, Cmd+Shift+P picture-in-picture, Cmd+Shift+C copy URL](docs/store-assets/06-shortcuts.jpg)
 
 ## What it does
 
@@ -39,6 +43,8 @@ Chrome extension, no build step, no dependencies.
 
 ### Tab switcher
 
+![The tab switcher: a grid of tabs with page previews, the previous tab highlighted](docs/store-assets/04-tab-switcher.jpg)
+
 `Cmd+Shift+K`. The tabs in this window as a grid, most recent first, each with a small picture of the page. It starts on the tab you were on before, so one press and release jumps back. Hold `Cmd` and press `Shift+K` again to step through them, then let go to switch. Or use the arrow keys and Enter, or click a tab. Escape closes it.
 
 - A tab you haven't looked at since the browser started shows its icon on grey instead of a picture. The picture appears once you visit it.
@@ -62,6 +68,8 @@ Tabs you want to keep, at the top of the sidebar. Click the pin on a tab to pin 
 `Cmd+Shift+C` copies the current page address. No popup, no confirmation.
 
 ### Picture-in-picture
+
+![A video popped out into a small floating window over the page](docs/store-assets/05-pip.jpg)
 
 `Cmd+Shift+P` pops the video on the page out into a small floating window that stays on top. Press it again on the same page to put it back. If there are several videos, it picks the biggest one that is playing, or else the biggest. On Windows and Linux the default `Ctrl+Shift+P` may clash with the browser's print shortcut; change it at `chrome://extensions/shortcuts` if it doesn't fire. Videos embedded from another site (like a YouTube video inside a blog post) aren't picked up yet.
 
