@@ -30,7 +30,7 @@ Chrome extension, no build step, no dependencies.
 `Cmd+T`, or click the Compass icon in the toolbar. A search box that pops up over the page. Cmd+T closes the blank new tab and opens the bar over the page you were on instead, so you may see a brief flash. Type anything and it finds open tabs, bookmarks, history and archived tabs in one list. Type a web address and it opens it. Type anything else and it searches the web.
 
 - Press Enter on an empty bar to jump back to the last tab you were on.
-- Type a site name like `yt` or `reddit`, press Tab, and search that site directly. Google, Gmail, Amazon, Reddit, LinkedIn, YouTube, GitHub, X, Wikipedia, Maps, Perplexity, ChatGPT and Claude are built in.
+- Type a site name like `yt` or `reddit`, press Tab, and search that site directly. About a dozen popular sites are built in.
 - Your favorites sit at the top. `Cmd+1` to `Cmd+9` opens them.
 
 ### Sidebar
@@ -39,6 +39,7 @@ Chrome extension, no build step, no dependencies.
 
 - An address field at the top shows the current site. Click it to edit, Enter to navigate.
 - A pin button keeps the sidebar open as a docked side panel. Click it again to close.
+- Double-click a tab to rename it. The name lasts until the tab or the browser closes, and shows only in the sidebar. In the floating sidebar a click switches tabs and closes it, so double-click works on the current tab; the docked panel renames any tab.
 - Arrow keys move through tabs, Enter opens one, Escape closes the sidebar.
 
 ### Tab switcher
@@ -59,7 +60,7 @@ Your top sites, shown as icons in both the bar and the sidebar. Press `+` to add
 
 Tabs you want to keep, at the top of the sidebar. Click the pin on a tab to pin it, or drag it up into Pinned. Click a pinned tab to open it, and click its pin again to unpin. Pinned tabs are stored as a "Pinned" bookmark folder, so they sync.
 
-- **New Folder** adds a folder. Double-click or right-click a folder to rename it.
+- **New Folder** adds a folder. Double-click a pinned tab or folder to rename it.
 - Drag to reorder, or drop onto a folder to put it inside.
 - `×` on a folder deletes it and everything in it.
 
@@ -71,7 +72,7 @@ Tabs you want to keep, at the top of the sidebar. Click the pin on a tab to pin 
 
 ![A video popped out into a small floating window over the page](docs/store-assets/05-pip.jpg)
 
-`Cmd+Shift+P` pops the video on the page out into a small floating window that stays on top. Press it again on the same page to put it back. If there are several videos, it picks the biggest one that is playing, or else the biggest. On Windows and Linux the default `Ctrl+Shift+P` may clash with the browser's print shortcut; change it at `chrome://extensions/shortcuts` if it doesn't fire. Videos embedded from another site (like a YouTube video inside a blog post) aren't picked up yet.
+`Cmd+Shift+P` pops the video on the page out into a small floating window that stays on top. Press it again on the same page to put it back. If there are several videos, it picks the biggest one that is playing, or else the biggest. On Windows and Linux the default `Ctrl+Shift+P` may clash with the browser's print shortcut; change it at `chrome://extensions/shortcuts` if it doesn't fire. Works on sites that hide the video inside a custom player, like Reddit. Videos embedded from another site (like a YouTube video inside a blog post) aren't picked up yet.
 
 ### Auto-archive
 

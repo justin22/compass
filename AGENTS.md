@@ -29,6 +29,7 @@ Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for 
 - These are not Chrome's pinned tabs (`tab.pinned`). Pinning a Chrome-pinned tab moves it into the Pinned folder and unpins it in Chrome.
 - A pinned item "has a tab" when an open tab's URL starts with the bookmark URL (`isUnder`). Loose, on purpose. That tab shows only in Pinned, not in the tab list.
 - `chrome.storage.local` also holds `archive` (closed tabs, max 500) and `closedFolders` (collapsed Pinned folders).
+- `chrome.storage.session` holds `names` (sidebar tab renames, by tab id; no cleanup: tab ids aren't reused within a session). Pinned items rename through the bookmark title.
 - Tab previews live in `chrome.storage.session` as `shot<tabId>` (JPEG data URL, 320px wide). `background.js` captures the active tab 400ms after activation or load and drops the key on `tabs.onRemoved`.
 - Auto-archive skips active, pinned, audible tabs and anything under a Favorite or Pinned URL.
 
@@ -36,7 +37,7 @@ Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for 
 
 - `render()` rebuilds Pinned and the tab list from scratch. `schedule()` batches tab and bookmark events into one render, and holds off while a drag or a folder rename is in progress.
 - One drag system for both lists: `press` → `beginDrag` → `updateDrag` → `endDrag`, set up per list by a spec (`tabDrag`, `pinnedDrag`) giving the list, which rows it may pass, and `commit`. The row lifts and follows the pointer and the others slide aside. In Pinned, hovering the middle of a folder means "drop into it". A tab dragged up over Pinned files into the folder under the pointer (`hoverFolder`).
-- `renaming` is one-shot: the next render that draws the folder uses it up. Keep it that way, or a stale value pops the rename field on a later expand.
+- `renaming` is one-shot (a bookmark id or a tab id): the next render that draws the row uses it up. Keep it that way, or a stale value pops the rename field on a later expand.
 - Deleting a non-empty folder asks once more on the button itself. No `alert` / `confirm` dialogs anywhere.
 
 ## Gotchas
@@ -46,6 +47,7 @@ Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for 
 - `chrome.sidePanel.open` needs a user gesture: call it first thing in the handler, before any `await`.
 - `chrome.bookmarks.move` within one folder: Chrome shifts the index itself when moving down. Don't adjust it again.
 - Bookmark changes have no undo. Anything that deletes bookmarks needs a confirm step.
+- Favorites match open tabs loosely (`openTabFor`: URL prefix, else same host); Pinned items match by prefix only (`isUnder`), so two Google Docs can be pinned separately.
 
 ## Checking changes
 

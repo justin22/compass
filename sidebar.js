@@ -12,7 +12,9 @@ let suppressClick = false; // the click that ends a drag shouldn't also switch t
 let cursorId = null; // keyboard cursor: the row ↑↓ moves and Enter opens (follows the mouse too)
 const tabsById = new Map();
 let activeTab = null; // the tab the address field shows and navigates
-let renaming = null; // the Pinned folder to show as a name field on the next render (one-shot)
+let renaming = null; // the Pinned row (bookmark id) or tab (tab id) to show as a name field on the next render (one-shot)
+let names = {}; // tab names given here, by tab id; session storage, so gone when the browser closes
+// ponytail: never pruned; tab ids aren't reused within a session so it only grows by renames. Drop keys on tabs.onRemoved if that matters
 const closedFolders = new Set((await chrome.storage.local.get('closedFolders')).closedFolders); // collapsed Pinned folders
 
 function setCursor(id, scroll = false) {
@@ -29,7 +31,7 @@ function setCursor(id, scroll = false) {
 if (embed) document.documentElement.classList.add('embed');
 
 const activate = t => {
-  if (embed) close(); // pick a tab and get out of the way
+  if (embed && !(t.active && t.windowId === windowId)) close(); // pick a tab and get out of the way; the current tab stays open so a double-click can rename it
   chrome.tabs.update(t.id, { active: true });
   if (t.windowId !== windowId) chrome.windows.update(t.windowId, { focused: true }); // a favorite open elsewhere
 };
@@ -92,31 +94,36 @@ const FOLDER_OPEN = '<svg viewBox="0 0 24 24"><path d="m6 14 1.5-2.9A2 2 0 0 1 9
 const openTabIn = (tabs, b) => tabs.find(t => isUnder(t.url || t.pendingUrl, b.url));
 
 // inline name edit: Enter or click away saves, Escape keeps the old name
-function renameField(b) {
+function renameField(current, save) {
   const input = document.createElement('input');
   input.className = 't rename';
-  input.value = b.title;
+  input.value = current;
   input.spellcheck = false;
-  input.onclick = e => e.stopPropagation(); // don't toggle the folder
+  input.onclick = input.ondblclick = e => e.stopPropagation(); // don't toggle the folder, switch to the tab, or re-arm the rename while selecting a word
   input.onkeydown = e => {
     e.stopPropagation(); // keys belong to the field, not the tab list
-    if (e.key === 'Escape') input.value = b.title;
+    if (e.key === 'Escape') input.value = current;
     if (e.key === 'Enter' || e.key === 'Escape') input.blur();
   };
   input.onblur = () => {
     const title = input.value.trim();
-    if (title && title !== b.title) chrome.bookmarks.update(b.id, { title }); // re-renders via the bookmarks listener
+    if (title && title !== current) save(title); // re-renders via the bookmarks or storage listener
     else schedule();
   };
   return input;
 }
+const renameBookmark = b => title => chrome.bookmarks.update(b.id, { title });
+const renameTab = t => title => chrome.storage.session.set({ names: { ...names, [t.id]: title } });
 
 function pinnedRows(node, tabs, depth = 0) {
   return (node.children ?? []).flatMap(b => {
     const li = document.createElement('li');
     li.style.paddingLeft = `${10 + depth * 16}px`;
-    Object.assign(li.dataset, { parent: node.id, index: b.index, depth }); // where it sits, for drag and drop
+    Object.assign(li.dataset, { parent: node.id, index: b.index, depth, bm: b.id }); // where it sits, for drag and drop; bm for rename
     li.onpointerdown = e => { if (e.button === 0 && !e.target.closest('.x, .rename')) press(li, e, pinnedDrag(b)); };
+    const editing = b.id === renaming;
+    if (editing) renaming = null; // used up here, so it can't linger and pop up on a later expand
+    const name = editing ? renameField(b.title, renameBookmark(b)) : label(b.title || b.url);
     if (!b.url) {
       const open = !closedFolders.has(b.id);
       li.className = 'folder';
@@ -139,9 +146,7 @@ function pinnedRows(node, tabs, depth = 0) {
         chrome.bookmarks.removeTree(b.id);
       };
       li.onmouseleave = () => { del.classList.remove('confirm'); del.textContent = '×'; }; // walking away cancels
-      const editing = b.id === renaming;
-      if (editing) renaming = null; // used up here, so it can't linger and pop up on a later expand
-      li.append(editing ? renameField(b) : label(b.title), del);
+      li.append(name, del);
       li.onclick = () => {
         if (suppressClick) return;
         closedFolders[open ? 'add' : 'delete'](b.id);
@@ -157,7 +162,7 @@ function pinnedRows(node, tabs, depth = 0) {
     const img = document.createElement('img');
     img.src = favicon(b.url);
     img.alt = '';
-    li.append(img, label(b.title || b.url));
+    li.append(img, name);
     li.append(pinButton(true, () => removeBookmark(b)));
     if (tab) li.append(closeButton(tab)); // closes the tab, keeps the pin
     li.onclick = () => { if (!suppressClick) tab ? activate(tab) : openFav(b); };
@@ -165,10 +170,10 @@ function pinnedRows(node, tabs, depth = 0) {
   });
 }
 
-// double-click or right-click a folder to rename it; on the list, since the first click already re-rendered the row
-pinnedEl.ondblclick = pinnedEl.oncontextmenu = e => {
-  const f = e.target.closest('li.folder');
-  if (f) { e.preventDefault(); renaming = f.dataset.folder; schedule(); }
+// double-click a pinned item or folder to rename it; on the list, since the first click already re-rendered the row
+pinnedEl.ondblclick = e => {
+  const row = e.target.closest('li[data-bm]');
+  if (row) { renaming = row.dataset.bm; schedule(); }
 };
 const clearDrop = () => document.querySelectorAll('.drop').forEach(el => el.classList.remove('drop'));
 
@@ -184,17 +189,20 @@ function tabItem(t) {
   const img = document.createElement('img');
   img.src = favicon(t.url || t.pendingUrl);
   img.alt = '';
+  const name = names[t.id] ?? (t.title || t.url);
   const title = document.createElement('span');
   title.className = 't';
   const text = document.createElement('span');
-  text.textContent = t.title || t.url;
+  text.textContent = name;
   title.append(text);
   const x = closeButton(t);
-  li.append(img, title);
+  const editing = t.id === renaming;
+  if (editing) renaming = null;
+  li.append(img, editing ? renameField(name, renameTab(t)) : title); // detached title: the marquee below finds nothing to slide
   if (t.pinned) {
     const pin = document.createElement('span');
     pin.className = 'pin';
-    pin.title = 'Pinned in Chrome (right-click to move to Pinned)';
+    pin.title = 'Pinned in Chrome';
     pin.innerHTML = PIN;
     li.append(pin);
   }
@@ -211,8 +219,8 @@ function tabItem(t) {
   li.onmouseleave = () => { li.classList.remove('marquee'); text.style.translate = ''; };
   li.onclick = () => { if (!suppressClick) activate(t); };
   li.onauxclick = e => { if (e.button === 1) chrome.tabs.remove(t.id); }; // middle-click closes
-  li.oncontextmenu = e => { e.preventDefault(); pinTab(t); };
-  li.onpointerdown = e => { if (e.button === 0 && !e.target.closest('.x')) press(li, e, tabDrag(t)); };
+  li.ondblclick = () => { renaming = t.id; schedule(); }; // the first click switched to it already; floating, that only works on the current tab
+  li.onpointerdown = e => { if (e.button === 0 && !e.target.closest('.x, .rename')) press(li, e, tabDrag(t)); };
   return li;
 }
 
@@ -338,12 +346,12 @@ function endDrag(cancelled) {
 }
 
 async function render() {
-  const [tabs, tree] = await Promise.all([chrome.tabs.query({ windowId }), pinnedTree()]);
+  const [tabs, tree, stored] = await Promise.all([chrome.tabs.query({ windowId }), pinnedTree(), chrome.storage.session.get('names')]);
+  names = stored.names ?? {};
   activeTab = tabs.find(t => t.active) ?? null;
   showUrl();
   pinnedEl.dataset.folder = tree.id;
   pinnedEl.replaceChildren(...pinnedRows(tree, tabs));
-  pinnedEl.querySelector('.rename')?.select(); // focuses too
   const claimed = new Set(linksIn(tree).map(b => openTabIn(tabs, b)?.id)); // a pinned item's tab shows up there, not twice
   const loose = tabs.filter(t => !claimed.has(t.id));
   tabsById.clear();
@@ -351,6 +359,7 @@ async function render() {
   if (!tabsById.has(cursorId)) cursorId = loose.find(t => t.active)?.id ?? null; // start on the current tab
   tabsEl.replaceChildren(...loose.map(tabItem)); // Chrome-pinned tabs come first in tab order already
   setCursor(cursorId);
+  document.querySelector('.rename')?.select(); // a rename in either list: focuses too
 }
 
 // ponytail: full re-render on any tab event, fine for normal tab counts; diff the DOM if it ever lags
@@ -425,6 +434,7 @@ tick();
 
 // favorites and Pinned change from here, the command bar or the bookmark manager
 for (const ev of ['onCreated', 'onRemoved', 'onChanged', 'onMoved']) chrome.bookmarks[ev].addListener(() => { renderFavs(); schedule(); });
+chrome.storage.onChanged.addListener((c, area) => { if (area === 'session' && c.names) schedule(); }); // a tab renamed here or in the other sidebar
 
 document.querySelector('#newfolder').onclick = async () => {
   const f = await chrome.bookmarks.create({ parentId: (await pinnedTree()).id, title: 'New Folder' });

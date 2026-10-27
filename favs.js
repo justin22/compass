@@ -30,11 +30,15 @@ export async function addFav(tab) {
 
 export const removeBookmark = b => chrome.bookmarks.remove(b.id); // a favorite or a pinned item
 
-// ponytail: "already open" = any tab under the favorite's URL; track tab ids per favorite if that's too loose
-// (also lets https://x.com match https://x.community: the trailing slash is dropped so https://x.com/a matches https://x.com/a?b)
+// (lets https://x.com match https://x.community: the trailing slash is dropped so https://x.com/a matches https://x.com/a?b)
 export const isUnder = (url, base) => !!url?.startsWith(base.replace(/\/$/, ''));
+// ponytail: "already open" = a tab under the favorite's URL, else any tab on its host (a favorite saved deep in
+// calendar.google.com should still find the calendar tab, wherever it went); track tab ids per favorite if that's too loose
 export async function openTabFor(fav) {
-  return (await chrome.tabs.query({})).find(t => isUnder(t.url, fav.url));
+  const tabs = await chrome.tabs.query({});
+  const host = u => { try { return new URL(u).host; } catch { return null; } };
+  const h = host(fav.url); // null for a malformed favorite: no host fallback then, or it would match any tab without a url
+  return tabs.find(t => isUnder(t.url, fav.url)) ?? (h ? tabs.find(t => host(t.url) === h) : undefined);
 }
 
 // Pinned: Arc-style saved tabs in a "Pinned" bookmarks folder. Its subfolders are the sidebar's folders;
