@@ -1,6 +1,8 @@
 # Compass
 
 > **Heads up: no human has reviewed this code.** All of it was written by an AI model (an LLM). I use Compass every day as my own browser setup and try every change by hand before it ships. But I haven't read the code, and there are no plans to review it soon. Keep that in mind before you install it, especially since it asks for access to your tabs, history and bookmarks.
+>
+> **No data collection.** Compass has no server, no analytics and no tracking, and it never sends your data anywhere. Everything stays in your browser. Favorites and Pinned are ordinary bookmarks, so they sync only if you have turned on your browser's own sync.
 
 A command bar and sidebar for Chrome and other Chromium browsers (Helium, Edge, Brave). It borrows the parts of Arc that were worth keeping: one search box for everything, a sidebar that stays out of the way, and old tabs that clean themselves up.
 
