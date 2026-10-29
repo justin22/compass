@@ -14,6 +14,7 @@ const tabs = [
   tab(7, { url: 'chrome://settings' }),          // browser page
   tab(8, { lastAccessed: undefined }),           // unknown age
   tab(9, { incognito: true }),                   // private: never written to disk
+  tab(10, { url: 'https://fav.community/' }),    // only looks like it's under the favorite
 ];
-assert.deepStrictEqual(staleTabs(tabs, ['https://fav.com/'], now).map(t => t.id), [1]);
+assert.deepStrictEqual(staleTabs(tabs, ['https://fav.com/'], now).map(t => t.id), [1, 10]);
 console.log('archive ok');

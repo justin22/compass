@@ -13,8 +13,7 @@
     "scripting",
     "sidePanel",
     "alarms",
-    "storage",
-    "clipboardWrite"
+    "storage"
   ],
   "host_permissions": [
     "<all_urls>"

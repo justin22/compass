@@ -1,5 +1,5 @@
-// Favorites, shared by the command bar and the sidebar.
-// They live in a "Favorites" bookmarks folder: syncs, editable in the bookmark manager.
+// Shared by the command bar and the sidebar: Favorites and Pinned (bookmark folders), favicons, URL detection.
+// Favorites live in a "Favorites" bookmarks folder: syncs, editable in the bookmark manager.
 
 export const favicon = url => chrome.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(url)}&size=32`);
 
@@ -30,8 +30,11 @@ export async function addFav(tab) {
 
 export const removeBookmark = b => chrome.bookmarks.remove(b.id); // a favorite or a pinned item
 
-// (lets https://x.com match https://x.community: the trailing slash is dropped so https://x.com/a matches https://x.com/a?b)
-export const isUnder = (url, base) => !!url?.startsWith(base.replace(/\/$/, ''));
+// the same page or deeper: https://x.com/a takes https://x.com/a/b and https://x.com/a?b, not https://x.com/ab or https://x.community
+export const isUnder = (url, base) => {
+  const b = base.replace(/\/$/, '');
+  return !!url?.startsWith(b) && /^([/?#]|$)/.test(url.slice(b.length));
+};
 // ponytail: "already open" = a tab under the favorite's URL, else any tab on its host (a favorite saved deep in
 // calendar.google.com should still find the calendar tab, wherever it went); track tab ids per favorite if that's too loose
 export async function openTabFor(fav) {
