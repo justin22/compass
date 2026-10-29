@@ -70,4 +70,4 @@ zip -r compass-$(node -p "require('./manifest.json').version").zip manifest.json
 
 Bump `version` in `manifest.json` before each new store upload. The store rejects a version it has already seen.
 
-Git: `main` on `github.com/justin22/compass`. This repo's local git config commits as justin22 (noreply email) and pushes with justin22's gh token, so plain `git push` works. Commit or push only when asked.
+Git: `main` on `github.com/justin22/compass` is PR-only. This repo's local git config commits as justin22 (noreply email) and pushes with justin22's gh token, so plain `git push` of a branch works. The gh CLI's active account is a different one, so open PRs with `GH_TOKEN=$(gh auth token --user justin22) gh pr create ...`. Commit or push only when asked.
