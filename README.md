@@ -157,4 +157,4 @@ showing its impact.
 
 ## Credits
 
-The icons in the sidebar are from [Lucide](https://lucide.dev), used under its [ISC license](https://lucide.dev/license).
+Icons by [Lucide](https://lucide.dev).
