@@ -43,6 +43,7 @@ Chrome extension, no build step, no dependencies.
 - A pin button keeps the sidebar open as a docked side panel. Click it again to close.
 - Double-click a tab to rename it. The name lasts until the tab or the browser closes, and shows only in the sidebar. In the floating sidebar a click switches tabs and closes it, so double-click works on the current tab; the docked panel renames any tab.
 - Arrow keys move through tabs, Enter opens one, Escape closes the sidebar.
+- The trash button at the bottom left closes all your other open tabs. Click it, then click again to confirm. Pinned items stay. Closed tabs go to the archive, so the command bar can still find them.
 
 ### Tab switcher
 
@@ -62,7 +63,7 @@ Your top sites, shown as icons in both the bar and the sidebar. Press `+` to add
 
 Tabs you want to keep, at the top of the sidebar. Click the pin on a tab to pin it, or drag it up into Pinned. Click a pinned tab to open it, and click its pin again to unpin. Pinned tabs are stored as a "Pinned" bookmark folder, so they sync.
 
-- **New Folder** adds a folder. Double-click a pinned tab or folder to rename it.
+- The folder button at the bottom right adds a folder. Double-click a pinned tab or folder to rename it.
 - Drag to reorder, or drop onto a folder to put it inside.
 - `×` on a folder deletes it and everything in it.
 
@@ -135,7 +136,7 @@ Leave the rest off.
 | `sidebar.html` / `sidebar.js` | The sidebar |
 | `switch.html` / `switch.js` | The tab switcher |
 | `favs.js` | Favorites and Pinned, shared by the bar and the sidebar |
-| `archive.js` | Decides which tabs are stale enough to close |
+| `archive.js` | Decides which tabs are stale enough to close, and saves closed tabs to the archive |
 | `archive.test.mjs` | One check for the archive logic |
 
 ## Test

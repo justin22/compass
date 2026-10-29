@@ -37,6 +37,29 @@
   html:not(.embed) #dock svg { fill: currentColor; } /* filled pin = docked */
   .new { display: flex; align-items: center; gap: 10px; width: 100%; height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--muted); font: inherit; text-align: left; }
   .new:hover { background: var(--hover); }
+  /* footer, stuck to the bottom: Clear (trash, asks on the button first) left, New folder right */
+  body { padding-bottom: 48px; } /* room so the last tab isn't hidden under it */
+  #foot { position: fixed; left: 8px; right: 8px; bottom: 8px; display: flex; pointer-events: none; } /* clicks between the buttons reach the tabs */
+  #foot button { position: relative; pointer-events: auto; display: flex; align-items: center; gap: 6px; height: 30px; min-width: 30px; padding: 0 7px; border: 0; border-radius: 8px; background: none; color: var(--muted); font: inherit; font-size: 12px; font-weight: 500;
+                 transition: background-color .18s ease-out, color .15s ease, scale 140ms cubic-bezier(0.23, 1, 0.32, 1); }
+  #foot button:active { scale: .96; }
+  #foot button[hidden] { display: none; }
+  #foot button:hover { background: var(--hover); color: var(--fg); }
+  #foot svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #clear span:empty { display: none; }
+  #clear.confirm, #clear.confirm:hover { color: #ff3b30; }
+  #newfolder { margin-left: auto; } /* stays right even while Clear is hidden */
+  /* instant tooltip above; the native title waits a second and can't be styled */
+  #foot button::after { content: attr(data-tip); position: absolute; left: 0; bottom: calc(100% + 6px); padding: 5px 8px; border-radius: 6px; background: var(--fg); color: var(--bg); font-size: 12px; font-weight: 400; width: max-content; white-space: nowrap; pointer-events: none;
+                        opacity: 0; translate: 0 3px; scale: .97; transform-origin: bottom left; transition: opacity 125ms ease-out, translate 125ms ease-out, scale 125ms ease-out; }
+  #foot #newfolder::after { left: auto; right: 0; transform-origin: bottom right; } /* grows leftwards, inside the panel */
+  #foot button:hover::after, #foot button:focus-visible::after { opacity: 1; translate: 0 0; scale: 1; transition-delay: .3s; } /* waits going in, leaves at once */
+  #clear.confirm::after { display: none; } /* the button says it already */
+  /* a confirm ask (Clear, folder ×) blurs in, so the change of meaning registers */
+  #clear.confirm span, .list .x.confirm { animation: ask 180ms cubic-bezier(0.23, 1, 0.32, 1); }
+  #clear.confirm span { animation-name: ask-slide; }
+  @keyframes ask { from { opacity: 0; filter: blur(2px); } }
+  @keyframes ask-slide { from { opacity: 0; filter: blur(2px); translate: -4px 0; } }
   #new { margin-bottom: 2px; } /* keeps its hover apart from the tab cursor row below */
   .new svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .rename { padding: 2px 4px; margin-left: -4px; border: 0; outline: 0; border-radius: 4px; background: var(--tile); color: var(--fg); font: inherit; user-select: text; }
@@ -88,6 +111,9 @@
     .tile:active, .new:active, #dock:active { scale: 1; }
     .list.reordering li, .list li.settling { transition: none; } /* rows jump to their slots instead of sliding */
     .list li.dragging { scale: 1; transition: none; }
+    #foot button:active { scale: 1; }
+    #foot button::after { translate: 0 0; scale: 1; } /* tooltip just fades */
+    #clear.confirm span { animation-name: ask; } /* no slide */
   }
 </style>
 </head>
@@ -107,10 +133,17 @@
 <div id="favs"></div>
 <div id="pinbox">
   <ul id="pinned" class="list"></ul>
-  <button id="newfolder" class="new"><svg viewBox="0 0 24 24"><path d="M12 10v6m-3-3h6M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>New Folder</button>
 </div>
 <button id="new" class="new"><span>+</span>New Tab</button>
 <ul id="tabs" class="list" role="listbox" aria-label="Open tabs" tabindex="0"></ul>
+<div id="foot">
+  <button id="clear" aria-label="Close other tabs" data-tip="Close other tabs">
+    <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg><span></span>
+  </button>
+  <button id="newfolder" aria-label="New folder" data-tip="New folder">
+    <svg viewBox="0 0 24 24"><path d="M12 10v6m-3-3h6M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+  </button>
+</div>
 <script type="module" src="sidebar.js"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 import { listFavs, pinnedTree, linksIn } from './favs.js';
-import { staleTabs } from './archive.js';
+import { staleTabs, saveArchive } from './archive.js';
 
 // resolves to whether anything opened
 async function openOverlay(windowId, view, hover = false) {
@@ -177,10 +177,7 @@ async function archiveStale() {
   const keepUrls = [...await listFavs(), ...linksIn(await pinnedTree())].map(f => f.url);
   const stale = staleTabs(await chrome.tabs.query({}), keepUrls, Date.now());
   if (!stale.length) return;
-  const entries = [...new Map(stale.map(t => [t.url, { url: t.url, title: t.title, archivedAt: Date.now() }])).values()]; // one entry per URL
-  const { archive = [] } = await chrome.storage.local.get('archive');
-  const urls = new Set(entries.map(e => e.url));
-  await chrome.storage.local.set({ archive: [...entries, ...archive.filter(a => !urls.has(a.url))].slice(0, 500) });
+  await saveArchive(stale);
   await Promise.allSettled(stale.map(t => chrome.tabs.remove(t.id))); // only after the archive is saved; one already-closed tab mustn't block the rest
 }
 // create once: re-creating on every worker wake-up would keep pushing the alarm back

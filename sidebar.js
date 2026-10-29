@@ -1,3 +1,4 @@
+import { saveArchive } from './archive.js';
 import { favicon, hasScheme, looksLikeUrl, listFavs, addFav, removeBookmark, openTabFor, isUnder, pinnedTree, linksIn, addPin, favTile, addTile, painted } from './favs.js';
 
 const favsEl = document.querySelector('#favs');
@@ -357,6 +358,7 @@ async function render() {
   for (const t of loose) tabsById.set(t.id, t);
   if (!tabsById.has(cursorId)) cursorId = loose.find(t => t.active)?.id ?? null; // start on the current tab
   tabsEl.replaceChildren(...loose.map(tabItem)); // Chrome-pinned tabs come first in tab order already
+  clearBtn.hidden = !clearable().length;
   setCursor(cursorId);
   document.querySelector('.rename')?.select(); // a rename in either list: focuses too
 }
@@ -440,6 +442,24 @@ document.querySelector('#newfolder').onclick = async () => {
   renaming = f.id; // shows up with its name selected, ready to type
   schedule();
 };
+// Clear (Arc-style): close the open tabs below Pinned in one go, archived first so the bar finds them.
+// Keeps the tab you're on (closing every tab would close the window) and Chrome-pinned tabs.
+const clearBtn = document.querySelector('#clear');
+const clearable = () => [...tabsById.values()].filter(t => !t.active && !t.pinned);
+const clearLabel = clearBtn.querySelector('span');
+const unconfirm = () => { clearBtn.classList.remove('confirm'); clearLabel.textContent = ''; };
+clearBtn.onclick = async () => {
+  const tabs = clearable();
+  if (!clearBtn.classList.contains('confirm')) { // asks once more, right on the button
+    clearBtn.classList.add('confirm');
+    clearLabel.textContent = `Close ${tabs.length} tab${tabs.length === 1 ? '' : 's'}?`;
+    return;
+  }
+  unconfirm();
+  await saveArchive(tabs); // only after the archive is saved
+  chrome.tabs.remove(tabs.map(t => t.id));
+};
+clearBtn.onmouseleave = clearBtn.onblur = unconfirm; // walking away cancels
 document.querySelector('#new').onclick = () => chrome.runtime.sendMessage({ openBar: windowId }); // swaps this overlay for the bar
 addEventListener('keydown', e => {
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {

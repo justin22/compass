@@ -21,7 +21,7 @@ Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for 
 | `sidebar.html` / `sidebar.js` | Sidebar. Runs two ways: floating in the overlay iframe (`embed`), or docked in the native side panel. |
 | `switch.html` / `switch.js` | Tab switcher: a grid of the window's tabs by `lastAccessed` (row flow, next = right; columns fit the window, min two rows), with previews. Overlay only. The shortcut again steps to the next tile (`arcNext` in `overlay.js`); releasing the modifier picks. |
 | `favs.js` | Shared by bar and sidebar: Favorites and Pinned (both bookmark folders), favicon URLs, URL detection, `painted()`. |
-| `archive.js` | Pure `staleTabs()` rule for auto-archive, checked by `archive.test.mjs`. |
+| `archive.js` | Pure `staleTabs()` rule for auto-archive, checked by `archive.test.mjs`. `saveArchive()` writes closed tabs to the archive (auto-archive and the sidebar's Clear). |
 
 ### Data
 
