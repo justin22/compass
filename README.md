@@ -66,6 +66,10 @@ Tabs you want to keep, at the top of the sidebar. Click the pin on a tab to pin 
 - Drag to reorder, or drop onto a folder to put it inside.
 - `×` on a folder deletes it and everything in it.
 
+### New tab toast
+
+Open a link in a background tab (`Cmd+click`) and a small "New tab opened" note shows at the top of the page for a few seconds. Click it to go to that tab.
+
 ### Copy URL
 
 `Cmd+Shift+C` copies the current page address. No popup, no confirmation.

@@ -14,7 +14,7 @@ Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for 
 
 | Piece | What it does |
 |---|---|
-| `background.js` | Service worker. Shortcuts, Cmd+T swap (closes the blank new tab, opens the bar), Copy URL, the 30-minute archive alarm. Injects `overlay.js` into the active tab to show the bar or sidebar. |
+| `background.js` | Service worker. Shortcuts, Cmd+T swap (closes the blank new tab, opens the bar), Copy URL, the background-tab toast, the 30-minute archive alarm. Injects `overlay.js` into the active tab to show the bar or sidebar. |
 | `overlay.js` | Draws a `<dialog>` with an iframe of `bar.html` or `sidebar.html` over the page. Talks to the frame with `postMessage` (`arcBar: 'close' / 'height' / 'focus'`). |
 | `content.js` | Edge hover: mouse resting on the left edge for 150ms asks the background to open the floating sidebar. |
 | `bar.html` / `bar.js` | Command bar: search tabs, bookmarks, history, archived tabs; site search engines (`ENGINES`); favorites with Cmd+1..9. |
