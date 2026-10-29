@@ -53,7 +53,7 @@
         @media (prefers-reduced-motion: reduce) { .panel.sidebar.slide { translate: 0 0; transition-property: opacity; } } /* keep the fade, drop the movement */
       </style>
       <div class="scrim ${view} ${hover ? 'hover' : ''}"></div>
-      <div class="panel ${view} ${hover ? 'slide' : ''}"><iframe allowtransparency="true" title="${{ bar: 'Command bar', sidebar: 'Sidebar', switch: 'Tab switcher' }[view]}"></iframe></div>`;
+      <div class="panel ${view} ${hover ? 'slide' : ''}"><iframe title="${{ bar: 'Command bar', sidebar: 'Sidebar', switch: 'Tab switcher' }[view]}"></iframe></div>`;
 
     const scrim = root.querySelector('.scrim');
     const panel = root.querySelector('.panel');

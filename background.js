@@ -101,7 +101,7 @@ function pip(tab) {
 }
 
 // Tab previews for the switcher: a shot of the tab you're looking at, taken when you arrive and when it finishes loading.
-// storage.session is memory only: gone when the browser closes, nothing on disk. Removed when the tab closes.
+// storage.session is memory only: gone when the browser closes, nothing on disk.
 // ponytail: no pruning; if the 10MB session quota fills, set() throws and newer tabs just show the favicon tile. Drop the oldest if that bites
 const shotTimers = new Map(); // one pending shot per window; captureVisibleTab is rate limited
 function shoot(windowId, tabId) {
@@ -129,7 +129,7 @@ async function archiveStale() {
   const keepUrls = [...await listFavs(), ...linksIn(await pinnedTree())].map(f => f.url);
   const stale = staleTabs(await chrome.tabs.query({}), keepUrls, Date.now());
   if (!stale.length) return;
-  const entries = stale.map(t => ({ url: t.url, title: t.title, archivedAt: Date.now() }));
+  const entries = [...new Map(stale.map(t => [t.url, { url: t.url, title: t.title, archivedAt: Date.now() }])).values()]; // one entry per URL
   const { archive = [] } = await chrome.storage.local.get('archive');
   const urls = new Set(entries.map(e => e.url));
   await chrome.storage.local.set({ archive: [...entries, ...archive.filter(a => !urls.has(a.url))].slice(0, 500) });

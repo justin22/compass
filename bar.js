@@ -72,10 +72,8 @@ async function search(q) {
 function render() {
   list.replaceChildren(...items.map((x, i) => {
     const li = document.createElement('li');
-    li.className = i === sel ? 'sel' : '';
     li.id = `r${i}`;
     li.role = 'option';
-    li.ariaSelected = i === sel;
     const img = document.createElement('img');
     img.src = x.engine ? favicon(engineHome(x.engine)) : x.url ? favicon(x.url) : SEARCH_ICON; // the engine is the browser's default, which extensions can't read
     img.alt = '';
@@ -86,12 +84,19 @@ function render() {
     k.className = 'k';
     k.textContent = x.label ?? x.kind;
     li.append(img, t, k);
-    li.onmousemove = () => { if (sel !== i) { sel = i; render(); } };
+    li.onmousemove = () => { if (sel !== i) select(i); };
     li.onclick = () => go(x);
     return li;
   }));
-  list.children[sel]?.scrollIntoView({ block: 'nearest' });
-  input.setAttribute('aria-activedescendant', items.length ? `r${sel}` : '');
+  select(sel, true);
+}
+
+// moves the highlight without rebuilding the list. Scrolls for keys only: on hover it would slide a half-visible row out from under the mouse
+function select(i, scroll = false) {
+  sel = i;
+  [...list.children].forEach((li, j) => { li.classList.toggle('sel', j === i); li.ariaSelected = j === i; });
+  input.setAttribute('aria-activedescendant', items.length ? `r${i}` : '');
+  if (scroll) list.children[i]?.scrollIntoView({ block: 'nearest' });
 }
 
 async function go(x) {
@@ -122,8 +127,7 @@ async function renderFavs() {
       onRemove: async () => { await removeBookmark(fav); renderFavs(); input.focus(); },
     })),
     addTile(async () => {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      await addFav(tab);
+      await addFav(current);
       renderFavs();
       input.focus();
     }),
@@ -164,13 +168,12 @@ document.addEventListener('keydown', e => { // on the document: works even if fo
     if (favs[e.key - 1]) openFav(favs[e.key - 1]);
   } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault();
-    sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % (items.length || 1);
-    render();
+    select((sel + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % (items.length || 1), true);
   } else if (e.key === 'Tab') {
     e.preventDefault(); // focus stays in the input (the list is a focusable scroller in new Chromium): Tab takes the engine when offered, else walks the list
     const eng = !engine && items.find(x => x.kind === 'Engine');
     if (eng) setEngine(eng.engine);
-    else { sel = (sel + (e.shiftKey ? -1 : 1) + items.length) % (items.length || 1); render(); }
+    else select((sel + (e.shiftKey ? -1 : 1) + items.length) % (items.length || 1), true);
   } else if (e.key === 'Backspace' && engine && !input.value) {
     setEngine(null);
   } else if (e.key === 'Enter') {

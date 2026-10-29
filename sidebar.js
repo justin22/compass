@@ -195,7 +195,6 @@ function tabItem(t) {
   const text = document.createElement('span');
   text.textContent = name;
   title.append(text);
-  const x = closeButton(t);
   const editing = t.id === renaming;
   if (editing) renaming = null;
   li.append(img, editing ? renameField(name, renameTab(t)) : title); // detached title: the marquee below finds nothing to slide
@@ -206,7 +205,7 @@ function tabItem(t) {
     pin.innerHTML = PIN;
     li.append(pin);
   }
-  li.append(pinButton(false, () => pinTab(t)), x);
+  li.append(pinButton(false, () => pinTab(t)), closeButton(t));
 
   // marquee: on hover, slide a truncated title to its end and stop there
   li.onmouseenter = () => {
