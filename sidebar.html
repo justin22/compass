@@ -7,7 +7,7 @@
   :root { --bg: #ececef; --fg: #1c1c1e; --muted: #65656a; /* 4.9:1 on --bg: 12px text needs 4.5 */ --hover: rgb(0 0 0 / .05); --active: #fff; --tile: rgb(0 0 0 / .05); --tile-hover: rgb(0 0 0 / .09); --shadow: 0 1px 2px rgb(0 0 0 / .1); }
   @media (prefers-color-scheme: dark) { :root { --bg: #1e1e20; --fg: #f2f2f7; --muted: #98989d; --hover: rgb(255 255 255 / .05); --active: rgb(255 255 255 / .1); --tile: rgb(255 255 255 / .06); --tile-hover: rgb(255 255 255 / .11); --shadow: none; } }
   * { box-sizing: border-box; }
-  body { margin: 0; padding: 10px 8px; background: var(--bg); color: var(--fg); font: 13px/1.3 system-ui, sans-serif; user-select: none; }
+  body { margin: 0; padding: 10px 8px 48px; /* bottom: room so the last tab isn't hidden under the footer */ background: var(--bg); color: var(--fg); font: 13px/1.3 system-ui, sans-serif; user-select: none; }
   .embed body { background: transparent; } /* the overlay's glass panel shows through */
   img { width: 16px; height: 16px; flex: none; }
 
@@ -38,7 +38,6 @@
   .new { display: flex; align-items: center; gap: 10px; width: 100%; height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--muted); font: inherit; text-align: left; }
   .new:hover { background: var(--hover); }
   /* footer, stuck to the bottom: Clear (trash, asks on the button first) left, New folder right */
-  body { padding-bottom: 48px; } /* room so the last tab isn't hidden under it */
   #foot { position: fixed; left: 8px; right: 8px; bottom: 8px; display: flex; pointer-events: none; } /* clicks between the buttons reach the tabs */
   #foot button { position: relative; pointer-events: auto; display: flex; align-items: center; gap: 6px; height: 30px; min-width: 30px; padding: 0 7px; border: 0; border-radius: 8px; background: none; color: var(--muted); font: inherit; font-size: 12px; font-weight: 500;
                  transition: background-color .18s ease-out, color .15s ease, scale 140ms cubic-bezier(0.23, 1, 0.32, 1); }
@@ -48,20 +47,21 @@
   #foot svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   #clear span:empty { display: none; }
   #clear.confirm, #clear.confirm:hover { color: #ff3b30; }
-  #newfolder { margin-left: auto; } /* stays right even while Clear is hidden */
-  /* instant tooltip above; the native title waits a second and can't be styled */
-  #foot button::after { content: attr(data-tip); position: absolute; left: 0; bottom: calc(100% + 6px); padding: 5px 8px; border-radius: 6px; background: var(--fg); color: var(--bg); font-size: 12px; font-weight: 400; width: max-content; white-space: nowrap; pointer-events: none;
-                        opacity: 0; translate: 0 3px; scale: .97; transform-origin: bottom left; transition: opacity 125ms ease-out, translate 125ms ease-out, scale 125ms ease-out; }
-  #foot #newfolder::after { left: auto; right: 0; transform-origin: bottom right; } /* grows leftwards, inside the panel */
-  #foot button:hover::after, #foot button:focus-visible::after { opacity: 1; translate: 0 0; scale: 1; transition-delay: .3s; } /* waits going in, leaves at once */
-  #clear.confirm::after { display: none; } /* the button says it already */
+  #activity-btn { margin-left: auto; } /* Activity and New folder stay right even while Clear is hidden */
+  /* tooltip (data-tip) above the button; the native title waits a second and can't be styled. Right-aligned, so it grows leftwards inside the panel */
+  [data-tip] { position: relative; }
+  [data-tip]::after { content: attr(data-tip); position: absolute; z-index: 2; right: 0; bottom: calc(100% + 6px); padding: 5px 8px; border-radius: 6px; background: var(--fg); color: var(--bg); font-size: 12px; font-weight: 400; line-height: 1.3; width: max-content; white-space: nowrap; pointer-events: none;
+                      opacity: 0; translate: 0 3px; scale: .97; transform-origin: bottom right; transition: opacity 125ms ease-out, translate 125ms ease-out, scale 125ms ease-out; }
+  #clear::after { right: auto; left: 0; transform-origin: bottom left; } /* at the left edge: grows rightwards */
+  [data-tip]:hover::after, [data-tip]:focus-visible::after { opacity: 1; translate: 0 0; scale: 1; transition-delay: .3s; } /* waits going in, leaves at once */
+  .confirm::after { display: none; } /* a confirm ask says it already */
+  .tips-warm [data-tip]::after, .tips-warm [data-tip]:hover::after { transition: none; } /* one tooltip already showed: the next one swaps in at once */
   /* a confirm ask (Clear, folder ×) blurs in, so the change of meaning registers */
   #clear.confirm span, .list .x.confirm { animation: ask 180ms cubic-bezier(0.23, 1, 0.32, 1); }
   #clear.confirm span { animation-name: ask-slide; }
   @keyframes ask { from { opacity: 0; filter: blur(2px); } }
   @keyframes ask-slide { from { opacity: 0; filter: blur(2px); translate: -4px 0; } }
   #new { margin-bottom: 2px; } /* keeps its hover apart from the tab cursor row below */
-  .new svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .rename { padding: 2px 4px; margin-left: -4px; border: 0; outline: 0; border-radius: 4px; background: var(--tile); color: var(--fg); font: inherit; user-select: text; }
   .new span { width: 16px; text-align: center; font-size: 16px; line-height: 1; }
 
@@ -90,7 +90,25 @@
   #tabs:focus { outline: 0; } /* the cursor row is the focus indicator */
   .list .pin-btn { display: grid; place-items: center; }
   .list .pin-btn svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .list .pin-btn.on svg { fill: currentColor; }
+  #menu, #activity { position: fixed; inset: auto; margin: 0; padding: 4px; border: 1px solid rgb(128 128 128 / .2); border-radius: 10px; background: var(--bg); color: var(--fg); box-shadow: 0 8px 24px rgb(0 0 0 / .16);
+                     transition: opacity 150ms ease-out, scale 150ms cubic-bezier(0.23, 1, 0.32, 1); }
+  #menu { min-width: 170px; transform-origin: top right; }
+  @starting-style { #menu:popover-open, #activity:popover-open { opacity: 0; scale: .96; } } /* opens from the button it came from; closes at once */
+  #menu button { display: block; width: 100%; height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; text-align: left; }
+  #menu button:hover, #menu button:focus-visible { background: var(--hover); outline: 0; }
+  /* the button whose popover is open stays lit and shown: the footer's chart icon (no tooltip: hovering it opens the real thing), a row's ⋯ */
+  body:has(#activity:popover-open) #activity-btn, .list .x.open { background: var(--hover); color: var(--fg); visibility: visible; }
+  #pinned li:has(.x.open) { background: var(--hover); }
+  /* Activity: what Compass keeps and does, above the footer's chart icon. Muted labels, firm values; a section's one action sits in its header */
+  #activity { right: 8px; bottom: 46px; width: 248px; padding: 6px 12px 10px; font-size: 12px; transform-origin: bottom right; outline: 0; }
+  #activity .sec { display: flex; justify-content: space-between; align-items: baseline; margin: 10px 0 2px; color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+  #activity .sec:first-child { margin-top: 4px; }
+  #activity .sec button { margin-right: -5px; padding: 1px 5px; border: 0; border-radius: 4px; background: none; color: var(--muted); font: inherit; font-size: 11px; font-weight: 500; text-transform: none; letter-spacing: 0; }
+  #activity .sec button:hover, #activity .sec button:focus-visible { background: var(--hover); color: var(--fg); outline: 0; }
+  #activity .row { display: flex; justify-content: space-between; gap: 12px; line-height: 1.75; color: var(--muted); }
+  #activity .row b { color: var(--fg); font-weight: 500; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  #activity .row b.dim { color: var(--muted); font-weight: 400; } /* "not set", "nothing yet": an absence reads quieter than a value */
+  .list .x.away { visibility: visible; } /* back to the pinned page: shown at rest, it's also the sign the tab wandered off */
   .list .x.confirm, .list .x.confirm:hover { width: auto; padding: 0 6px; visibility: visible; color: #ff3b30; font-size: 12px; font-weight: 500; }
   .list .x:hover { background: var(--hover); color: var(--fg); }
 
@@ -112,8 +130,9 @@
     .list.reordering li, .list li.settling { transition: none; } /* rows jump to their slots instead of sliding */
     .list li.dragging { scale: 1; transition: none; }
     #foot button:active { scale: 1; }
-    #foot button::after { translate: 0 0; scale: 1; } /* tooltip just fades */
+    [data-tip]::after { translate: 0 0; scale: 1; } /* tooltip just fades */
     #clear.confirm span { animation-name: ask; } /* no slide */
+    @starting-style { #menu:popover-open, #activity:popover-open { scale: 1; } } /* fade only */
   }
 </style>
 </head>
@@ -140,10 +159,15 @@
   <button id="clear" aria-label="Close other tabs" data-tip="Close other tabs">
     <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg><span></span>
   </button>
+  <button id="activity-btn" aria-label="Activity">
+    <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+  </button>
   <button id="newfolder" aria-label="New folder" data-tip="New folder">
     <svg viewBox="0 0 24 24"><path d="M12 10v6m-3-3h6M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
   </button>
 </div>
+<div id="menu" popover role="menu"></div>
+<div id="activity" popover role="dialog" aria-label="Activity" tabindex="-1"></div>
 <script type="module" src="sidebar.js"></script>
 </body>
 </html>

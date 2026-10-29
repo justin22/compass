@@ -1,5 +1,6 @@
-import { listFavs, pinnedTree, linksIn } from './favs.js';
-import { staleTabs, saveArchive } from './archive.js';
+import { dueTabs, saveArchive } from './archive.js';
+
+chrome.storage.session.set({ workerStart: Date.now() }); // when this worker last (re)started; the sidebar's Activity shows it
 
 // resolves to whether anything opened
 async function openOverlay(windowId, view, hover = false) {
@@ -34,7 +35,7 @@ chrome.commands.onCommand.addListener((command, tab) => {
 
 chrome.runtime.onMessage.addListener((msg, sender) => {
   if (msg?.openBar) openOverlay(msg.openBar, 'bar'); // sidebar's "New Tab" button
-  if (msg?.goTab) chrome.tabs.update(msg.goTab, { active: true }); // clicked the new-tab toast
+  if (msg?.goTab) chrome.tabs.update(msg.goTab, { active: true }).catch(() => {}); // clicked the new-tab toast; the tab may be gone already
   if (msg?.openSidebar && sender.tab?.active) { // content.js edge hover; skipped while the sidebar is docked
     const windowId = sender.tab.windowId;
     docked(windowId).then(d => { if (!d) openOverlay(windowId, 'sidebar', true); });
@@ -84,10 +85,11 @@ function toastInPage(tabId, site) {
     .light { color: #1d1d1f; background: rgb(255 255 255 / .94); border-color: rgb(0 0 0 / .08); }
     @media (prefers-reduced-motion: reduce) { button { animation: none; } }
   </style><button class="${darkPage ? 'light' : ''}">New tab opened <span></span><b>Switch →</b></button>`;
-  root.querySelector('span').textContent = site ? `· ${site}` : ''; // textContent: the site name is page-controlled
   root.querySelector('button').onclick = () => { host.remove(); chrome.runtime.sendMessage({ goTab: tabId }); };
+  host.role = 'status'; // read out by screen readers: a live region, so the text goes in after it's in the tree
   document.documentElement.append(host);
   host.showPopover();
+  root.querySelector('span').textContent = site ? `· ${site}` : ''; // textContent: the site name is page-controlled
   // gone after 4s, but not while the mouse is on it: it's on its way to click
   let timer = setTimeout(() => host.remove(), 4000);
   host.onmouseenter = () => clearTimeout(timer);
@@ -100,7 +102,7 @@ chrome.tabs.onCreated.addListener(tab => {
     .catch(() => {}); // browser pages block scripts: no toast there
 });
 
-// Copy URL (Cmd+Shift+C): copy in the page, silently. Injected, so it must be self-contained.
+// Copy URL (Cmd+Shift+L; Shift+C is Chrome's Inspect element): copy in the page, silently. Injected, so it must be self-contained.
 // ponytail: the fallback copies inside the page, so a page's own `copy` listener could swap the text; an offscreen document would avoid that
 function copyInPage(url) {
   const fallback = () => {
@@ -174,11 +176,11 @@ chrome.tabs.onRemoved.addListener(tabId => chrome.storage.session.remove(`shot${
 
 // Auto-archive: every 30 min, close tabs untouched for 12h, saving them first so the bar can find them.
 async function archiveStale() {
-  const keepUrls = [...await listFavs(), ...linksIn(await pinnedTree())].map(f => f.url);
-  const stale = staleTabs(await chrome.tabs.query({}), keepUrls, Date.now());
+  const stale = await dueTabs();
   if (!stale.length) return;
   await saveArchive(stale);
   await Promise.allSettled(stale.map(t => chrome.tabs.remove(t.id))); // only after the archive is saved; one already-closed tab mustn't block the rest
+  chrome.storage.session.set({ lastArchive: { at: Date.now(), n: stale.length } }); // for Activity
 }
 // create once: re-creating on every worker wake-up would keep pushing the alarm back
 chrome.alarms.get('archive').then(a => a || chrome.alarms.create('archive', { periodInMinutes: 30 }));

@@ -1,4 +1,4 @@
-import { saveArchive } from './archive.js';
+import { saveArchive, dueTabs } from './archive.js';
 import { favicon, hasScheme, looksLikeUrl, listFavs, addFav, removeBookmark, openTabFor, isUnder, pinnedTree, linksIn, addPin, favTile, addTile, painted } from './favs.js';
 
 const favsEl = document.querySelector('#favs');
@@ -16,6 +16,7 @@ let activeTab = null; // the tab the address field shows and navigates
 let renaming = null; // the Pinned row (bookmark id) or tab (tab id) to show as a name field on the next render (one-shot)
 let names = {}; // tab names given here, by tab id; session storage, so gone when the browser closes
 // ponytail: never pruned; tab ids aren't reused within a session so it only grows by renames. Drop keys on tabs.onRemoved if that matters
+let bound = {}; // pinned item (bookmark id) -> the tab it opened or was pinned from; it stays that pin's tab wherever it browses (session storage; render() prunes it)
 const closedFolders = new Set((await chrome.storage.local.get('closedFolders')).closedFolders); // collapsed Pinned folders
 
 function setCursor(id, scroll = false) {
@@ -44,7 +45,8 @@ function openFolder(id) {
 // right-click, or drop on a Pinned folder: save the tab to Pinned, and out of Chrome's own pinned strip
 async function pinTab(t, folderId) {
   if (folderId) openFolder(folderId);
-  await addPin(t, folderId);
+  const b = await addPin(t, folderId);
+  if (b) bind({ [b.id]: t.id });
   if (t.pinned) chrome.tabs.update(t.id, { pinned: false });
 }
 
@@ -63,21 +65,37 @@ async function renderFavs() {
   );
 }
 
+const tip = (el, text) => { el.dataset.tip = text; el.ariaLabel = text; }; // styled tooltip (sidebar.html), and the button's name
+// once a tooltip has shown, moving to the next one skips the delay and the fade; a short pause off them resets that
+let warmTimer, coolTimer;
+addEventListener('pointerover', e => {
+  if (!e.target.closest?.('[data-tip]')) return;
+  clearTimeout(coolTimer);
+  clearTimeout(warmTimer);
+  warmTimer = setTimeout(() => document.documentElement.classList.add('tips-warm'), 450); // the 300ms wait + 125ms fade are done: it's showing
+});
+addEventListener('pointerout', e => {
+  const from = e.target.closest?.('[data-tip]');
+  if (!from || from.contains(e.relatedTarget)) return; // still on it (moved onto its icon)
+  clearTimeout(warmTimer);
+  coolTimer = setTimeout(() => document.documentElement.classList.remove('tips-warm'), 400); // time to reach the next one
+});
+
 function closeButton(t) {
   const x = document.createElement('button');
   x.className = 'x';
   x.textContent = '×';
-  x.title = 'Close tab';
+  tip(x, 'Close tab');
   x.onclick = e => { e.stopPropagation(); chrome.tabs.remove(t.id); };
   return x;
 }
 
-// hover button before ×: pin a tab, or unpin a pinned item (filled pin)
-function pinButton(pinned, onClick) {
+// hover buttons before ×: pin a tab, back to a pinned page, ⋯
+function iconButton(cls, svg, title, onClick) {
   const b = document.createElement('button');
-  b.className = pinned ? 'x pin-btn on' : 'x pin-btn';
-  b.innerHTML = PIN;
-  b.title = pinned ? 'Unpin' : 'Pin';
+  b.className = `x pin-btn ${cls}`;
+  b.innerHTML = svg;
+  tip(b, title);
   b.onclick = e => { e.stopPropagation(); onClick(); };
   return b;
 }
@@ -92,7 +110,52 @@ function label(text) {
 // --- Pinned: saved tabs and folders from the "Pinned" bookmarks folder, above the open tabs.
 const FOLDER = '<svg viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>';
 const FOLDER_OPEN = '<svg viewBox="0 0 24 24"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg>';
-const openTabIn = (tabs, b) => tabs.find(t => isUnder(t.url || t.pendingUrl, b.url));
+const bind = more => chrome.storage.session.set({ bound: { ...bound, ...more } }); // { bookmark id: tab id }
+// a pin's tab: the one bound to it, else one still under its URL that no other pin has bound
+const openTabIn = (tabs, b) => tabs.find(t => t.id === bound[b.id])
+  ?? tabs.find(t => isUnder(t.url || t.pendingUrl, b.url) && !Object.values(bound).includes(t.id));
+const sameUrl = (a, b) => a.replace(/\/$/, '') === b.replace(/\/$/, '');
+async function openPin(b) {
+  await bind({ [b.id]: (await chrome.tabs.create({ url: b.url, windowId })).id }); // before close(): the overlay tears this frame down at once
+  if (embed) close();
+}
+const BACK = '<svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>';
+const MORE = '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>';
+
+// ⋯ on a pinned row: the less-used actions in a menu, so the row keeps few icons. A popover: Esc and click-away close it.
+const menu = document.querySelector('#menu');
+let anchor; // where the ⋯ the open menu came from sits
+function moreButton(items) {
+  const b = iconButton('', MORE, 'More', () => { // runs before the popover toggles: fill and place it first
+    menu.replaceChildren(...items.map(([text, run]) => {
+      const item = document.createElement('button');
+      item.role = 'menuitem';
+      item.textContent = text;
+      item.onclick = () => { menu.hidePopover(); run(); };
+      return item;
+    }));
+    anchor = b.getBoundingClientRect();
+    menu.style.right = `${document.documentElement.clientWidth - anchor.right}px`; // clientWidth: innerWidth counts the scrollbar
+    menu.style.top = `${anchor.bottom + 4}px`;
+    document.querySelector('.x.open')?.classList.remove('open');
+    b.classList.add('open'); // stays lit, and shown, while its menu is open: the row's hover is gone by then
+  });
+  b.popoverTargetElement = menu;
+  b.ariaHasPopup = 'menu';
+  return b;
+}
+menu.addEventListener('toggle', e => {
+  if (e.newState !== 'open') return document.querySelector('.x.open')?.classList.remove('open');
+  if (anchor.bottom + 4 + menu.offsetHeight > innerHeight - 8) menu.style.top = `${anchor.top - 4 - menu.offsetHeight}px`; // no room below: open upwards
+  menu.querySelector('button')?.focus();
+});
+menu.onkeydown = e => {
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  e.preventDefault();
+  e.stopPropagation(); // not the tab list's cursor
+  const items = [...menu.children];
+  items[(items.indexOf(document.activeElement) + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus();
+};
 
 // inline name edit: Enter or click away saves, Escape keeps the old name
 function renameField(current, save) {
@@ -116,7 +179,7 @@ function renameField(current, save) {
 const renameBookmark = b => title => chrome.bookmarks.update(b.id, { title });
 const renameTab = t => title => chrome.storage.session.set({ names: { ...names, [t.id]: title } });
 
-function pinnedRows(node, tabs, depth = 0) {
+function pinnedRows(node, tabOf, depth = 0) { // tabOf: bookmark id -> its open tab in this window, if any
   return (node.children ?? []).flatMap(b => {
     const li = document.createElement('li');
     li.style.paddingLeft = `${10 + depth * 16}px`;
@@ -135,18 +198,18 @@ function pinnedRows(node, tabs, depth = 0) {
       const del = document.createElement('button');
       del.className = 'x';
       del.textContent = '×';
-      del.title = 'Delete folder and everything in it';
+      tip(del, 'Delete folder and everything in it');
       del.onclick = e => {
         e.stopPropagation();
         // no undo for bookmarks: a folder with things in it asks once more, right on the button
         if (b.children?.length && !del.classList.contains('confirm')) {
           del.classList.add('confirm');
-          del.textContent = 'Delete?';
+          del.ariaLabel = del.textContent = 'Delete?'; // the name too: a fixed aria-label would hide the ask
           return;
         }
         chrome.bookmarks.removeTree(b.id);
       };
-      li.onmouseleave = () => { del.classList.remove('confirm'); del.textContent = '×'; }; // walking away cancels
+      li.onmouseleave = () => { del.classList.remove('confirm'); del.textContent = '×'; del.ariaLabel = del.dataset.tip; }; // walking away cancels
       li.append(name, del);
       li.onclick = () => {
         if (suppressClick) return;
@@ -154,19 +217,28 @@ function pinnedRows(node, tabs, depth = 0) {
         chrome.storage.local.set({ closedFolders: [...closedFolders] });
         schedule();
       };
-      return [li, ...(open ? pinnedRows(b, tabs, depth + 1) : [])];
+      return [li, ...(open ? pinnedRows(b, tabOf, depth + 1) : [])];
     }
-    const tab = openTabIn(tabs, b);
+    const tab = tabOf.get(b.id);
     li.className = !tab ? 'closed' : tab.active ? 'active' : '';
     li.dataset.folder = node.id; // a tab dropped on a row files into the folder it sits in
-    li.title = b.title;
+    name.title = b.title;
     const img = document.createElement('img');
     img.src = favicon(b.url);
     img.alt = '';
     li.append(img, name);
-    li.append(pinButton(true, () => removeBookmark(b)));
+    const away = tab?.url && !sameUrl(tab.url, b.url); // browsed off the pinned page (Arc-style): offer the way back, or keep where it is now
+    if (away) {
+      name.title = `${b.title}\nNow on: ${tab.title || tab.url}`;
+      li.append(iconButton('away', BACK, 'Back to the pinned page', () => chrome.tabs.update(tab.id, { url: b.url })));
+    }
+    li.append(moreButton([
+      ...away ? [['Pin this page instead', () => chrome.bookmarks.update(b.id, { url: tab.url })]] : [], // keeps the name
+      ['Rename', () => { renaming = b.id; schedule(); }],
+      ['Unpin', () => removeBookmark(b)],
+    ]));
     if (tab) li.append(closeButton(tab)); // closes the tab, keeps the pin
-    li.onclick = () => { if (!suppressClick) tab ? activate(tab) : openFav(b); };
+    li.onclick = () => { if (!suppressClick) tab ? activate(tab) : openPin(b); };
     return [li];
   });
 }
@@ -206,7 +278,7 @@ function tabItem(t) {
     pin.innerHTML = PIN;
     li.append(pin);
   }
-  li.append(pinButton(false, () => pinTab(t)), closeButton(t));
+  li.append(iconButton('', PIN, 'Pin', () => pinTab(t)), closeButton(t));
 
   // marquee: on hover, slide a truncated title to its end and stop there
   li.onmouseenter = () => {
@@ -346,13 +418,22 @@ function endDrag(cancelled) {
 }
 
 async function render() {
-  const [tabs, tree, stored] = await Promise.all([chrome.tabs.query({ windowId }), pinnedTree(), chrome.storage.session.get('names')]);
+  const [all, tree, stored] = await Promise.all([chrome.tabs.query({}), pinnedTree(), chrome.storage.session.get(['names', 'bound'])]);
+  const tabs = all.filter(t => t.windowId === windowId);
   names = stored.names ?? {};
+  // keep only bindings whose pin and tab (any window) still exist: a stale one would keep an unpinned tab out of auto-archive and away from other pins
+  const live = new Set(all.map(t => t.id));
+  const links = linksIn(tree);
+  bound = Object.fromEntries(links.flatMap(b => live.has(stored.bound?.[b.id]) ? [[b.id, stored.bound[b.id]]] : []));
   activeTab = tabs.find(t => t.active) ?? null;
   showUrl();
   pinnedEl.dataset.folder = tree.id;
-  pinnedEl.replaceChildren(...pinnedRows(tree, tabs));
-  const claimed = new Set(linksIn(tree).map(b => openTabIn(tabs, b)?.id)); // a pinned item's tab shows up there, not twice
+  const tabOf = new Map(links.map(b => [b.id, openTabIn(tabs, b)])); // each pin's tab here, once
+  pinnedEl.replaceChildren(...pinnedRows(tree, tabOf));
+  // bind every pin's tab, so it stays put once it browses off the pinned URL (also covers tabs from before a restart); writes the pruning too
+  const fresh = Object.fromEntries([...tabOf].flatMap(([id, t]) => t && bound[id] !== t.id ? [[id, t.id]] : []));
+  if (Object.keys(fresh).length || Object.keys(bound).length !== Object.keys(stored.bound ?? {}).length) bind(fresh);
+  const claimed = new Set([...tabOf.values()].flatMap(t => t ? [t.id] : [])); // a pinned item's tab shows up there, not twice
   const loose = tabs.filter(t => !claimed.has(t.id));
   tabsById.clear();
   for (const t of loose) tabsById.set(t.id, t);
@@ -435,7 +516,7 @@ tick();
 
 // favorites and Pinned change from here, the command bar or the bookmark manager
 for (const ev of ['onCreated', 'onRemoved', 'onChanged', 'onMoved']) chrome.bookmarks[ev].addListener(() => { renderFavs(); schedule(); });
-chrome.storage.onChanged.addListener((c, area) => { if (area === 'session' && c.names) schedule(); }); // a tab renamed here or in the other sidebar
+chrome.storage.onChanged.addListener((c, area) => { if (area === 'session' && (c.names || c.bound)) schedule(); }); // a tab renamed or bound here or in the other sidebar
 
 document.querySelector('#newfolder').onclick = async () => {
   const f = await chrome.bookmarks.create({ parentId: (await pinnedTree()).id, title: 'New Folder' });
@@ -447,19 +528,60 @@ document.querySelector('#newfolder').onclick = async () => {
 const clearBtn = document.querySelector('#clear');
 const clearable = () => [...tabsById.values()].filter(t => !t.active && !t.pinned);
 const clearLabel = clearBtn.querySelector('span');
-const unconfirm = () => { clearBtn.classList.remove('confirm'); clearLabel.textContent = ''; };
+const unconfirm = () => { clearBtn.classList.remove('confirm'); clearLabel.textContent = ''; clearBtn.ariaLabel = clearBtn.dataset.tip; };
 clearBtn.onclick = async () => {
   const tabs = clearable();
   if (!clearBtn.classList.contains('confirm')) { // asks once more, right on the button
     clearBtn.classList.add('confirm');
-    clearLabel.textContent = `Close ${tabs.length} tab${tabs.length === 1 ? '' : 's'}?`;
+    clearBtn.ariaLabel = clearLabel.textContent = `Close ${tabs.length} tab${tabs.length === 1 ? '' : 's'}?`; // the name too: a fixed aria-label would hide the ask
     return;
   }
   unconfirm();
   await saveArchive(tabs); // only after the archive is saved
-  chrome.tabs.remove(tabs.map(t => t.id));
+  await Promise.allSettled(tabs.map(t => chrome.tabs.remove(t.id))); // one already-closed tab mustn't block the rest
 };
 clearBtn.onmouseleave = clearBtn.onblur = unconfirm; // walking away cancels
+
+// Activity (the footer's chart icon): what Compass keeps and does, so nobody has to guess. Snapshot per open; Clear previews refreshes it.
+const act = document.querySelector('#activity');
+const bytes = n => n < 1e6 ? `${Math.round(n / 1e3)} KB` : `${(n / 1e6).toFixed(1)} MB`;
+const span = ms => { const m = Math.round(ms / 6e4); return m < 1 ? '<1m' : m < 60 ? `${m}m` : `${Math.round(m / 60)}h`; };
+const el = (tag, props) => Object.assign(document.createElement(tag), props);
+const row = (k, v, dim) => { const r = el('div', { className: 'row' }); r.append(el('span', { textContent: k }), el('b', { textContent: v, className: dim ? 'dim' : '' })); return r; }; // dim: an absence, not a value
+const sec = (t, action) => { const s = el('div', { className: 'sec' }); s.append(el('span', { textContent: t })); if (action) s.append(action); return s; }; // the section's one action sits in its header
+const key = c => c.shortcut || (c.name === 'open-bar' ? `${/Mac/.test(navigator.platform) ? '⌘' : 'Ctrl+'}T (new tab)` : ''); // the bar isn't a bound command: it swaps in for the new tab
+async function renderActivity() {
+  const now = Date.now();
+  const [all, due, cmds, disk, { archive = [] }, alarm, { workerStart, lastArchive }] = await Promise.all([
+    chrome.tabs.query({}), dueTabs(), chrome.commands.getAll(), chrome.storage.local.getBytesInUse(),
+    chrome.storage.local.get('archive'), chrome.alarms.get('archive'), chrome.storage.session.get(['workerStart', 'lastArchive']),
+  ]);
+  const shots = all.map(t => `shot${t.id}`); // previews exist only for open tabs, so no key listing needed
+  const previews = await chrome.storage.session.getBytesInUse(shots);
+  act.replaceChildren(
+    sec('Tabs'),
+    row('Open', all.length), row('Sleeping', all.filter(t => t.discarded).length), row('Due to archive', due.length),
+    sec('Auto-archive'),
+    row('Next run', alarm ? `in ${span(alarm.scheduledTime - now)}` : 'not scheduled', !alarm),
+    row('Last run', lastArchive ? `${lastArchive.n} closed, ${span(now - lastArchive.at)} ago` : 'nothing yet', !lastArchive),
+    row('Archived pages', archive.length),
+    sec('Storage', el('button', { textContent: 'Clear previews', onclick: () => chrome.storage.session.remove(shots).then(renderActivity) })),
+    row('Previews (memory)', bytes(previews)), row('Archive (disk)', bytes(disk)),
+    sec('Shortcuts', el('button', { textContent: 'Change', onclick: () => chrome.tabs.create({ url: 'chrome://extensions/shortcuts', windowId }) })), // an old install keeps its old keys; new commands can come up unset
+    ...cmds.filter(c => c.description).map(c => row(c.description, key(c) || 'not set', !key(c))), // drops Chrome's own _execute_action (the toolbar icon)
+    sec('Background worker'),
+    row('Last woke', workerStart ? `${span(now - workerStart)} ago` : 'unknown', !workerStart),
+  );
+}
+// opens on hover after a beat (passing over it shouldn't flash it), or on click for touch and keyboard. Esc, a click away or moving off closes it.
+const actBtn = document.querySelector('#activity-btn');
+let actTimer;
+const openAct = () => renderActivity().then(() => { if (!act.matches(':popover-open')) act.showPopover(); }); // filled first: no empty flash
+const leaveAct = () => { clearTimeout(actTimer); actTimer = setTimeout(() => act.matches(':popover-open') && act.hidePopover(), 250); }; // grace to cross the gap into it
+actBtn.onmouseenter = () => { clearTimeout(actTimer); actTimer = setTimeout(openAct, 300); };
+actBtn.onmouseleave = act.onmouseleave = leaveAct;
+act.onmouseenter = () => clearTimeout(actTimer);
+actBtn.onclick = () => { clearTimeout(actTimer); openAct().then(() => act.focus()); }; // focus here only: a hover mustn't steal it from the address field
 document.querySelector('#new').onclick = () => chrome.runtime.sendMessage({ openBar: windowId }); // swaps this overlay for the bar
 addEventListener('keydown', e => {
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -469,7 +591,7 @@ addEventListener('keydown', e => {
     setCursor(ids[Math.max(0, Math.min(ids.length - 1, i))], true); // stops at the ends, no wrap
   } else if (e.key === 'Enter' && !e.target.closest?.('button') && tabsById.has(cursorId)) { // a focused button handles its own Enter
     activate(tabsById.get(cursorId));
-  } else if (e.key === 'Escape' && embed) {
+  } else if (e.key === 'Escape' && embed && !document.querySelector(':popover-open')) { // Esc closes an open menu or Activity first
     close();
   }
 });

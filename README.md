@@ -12,14 +12,16 @@ Chrome extension, no build step, no dependencies.
 
 ## Highlights
 
-- **[Command bar](#command-bar)**: `Cmd+T` searches open tabs, bookmarks, history and the web from one box. `Cmd+1` to `Cmd+9` opens a favorite, `Cmd+Shift+C` copies the page address.
+- **[Command bar](#command-bar)**: `Cmd+T` searches open tabs, bookmarks, history and the web from one box. `Cmd+1` to `Cmd+9` opens a favorite, `Cmd+Shift+L` copies the page address.
 - **[Sidebar](#sidebar)**: your tabs in a vertical list. `Cmd+Shift+S`, or rest your mouse on the left edge.
 - **[Tab switcher](#tab-switcher)**: `Cmd+Shift+K` shows your recent tabs as previews. Press again to step through, let go to switch.
 - **[Pinned](#pinned)**: tabs you keep, in folders, at the top of the sidebar. They sync as bookmarks.
 - **[Picture-in-picture](#picture-in-picture)**: `Cmd+Shift+P` pops the page's video into a floating window that stays on top.
 - **[Auto-archive](#auto-archive)**: tabs you haven't touched in 12 hours close themselves and stay searchable.
 
-![All the shortcuts: Cmd+T command bar, Cmd+Shift+S sidebar, Cmd+Shift+K tab switcher, Cmd+Shift+P picture-in-picture, Cmd+Shift+C copy URL](docs/store-assets/06-shortcuts.jpg)
+Shortcuts are written for Mac. On Windows and Linux, read `Cmd` as `Ctrl`. Change any of them at `chrome://extensions/shortcuts`.
+
+![All the shortcuts: Cmd+T command bar, Cmd+Shift+S sidebar, Cmd+Shift+K tab switcher, Cmd+Shift+P picture-in-picture, Cmd+Shift+L copy URL](docs/store-assets/06-shortcuts.jpg)
 
 ## What it does
 
@@ -43,7 +45,8 @@ Chrome extension, no build step, no dependencies.
 - A pin button keeps the sidebar open as a docked side panel. Click it again to close.
 - Double-click a tab to rename it. The name lasts until the tab or the browser closes, and shows only in the sidebar. In the floating sidebar a click switches tabs and closes it, so double-click works on the current tab; the docked panel renames any tab.
 - Arrow keys move through tabs, Enter opens one, Escape closes the sidebar.
-- The trash button at the bottom left closes all your other open tabs. Click it, then click again to confirm. Pinned items stay. Closed tabs go to the archive, so the command bar can still find them.
+- Hover the chart button at the bottom right to see what Compass keeps and does: open and sleeping tabs, when auto-archive runs next and what it closed last, how much the tab previews and the archive take up, and which shortcuts are set. Previews live in memory only. A button there clears them.
+- The trash button at the bottom left closes your other open tabs. Click it, then click again to confirm. Pinned items, tabs pinned in Chrome and the tab you're on stay. Closed tabs go to the archive, so the command bar can still find them.
 
 ### Tab switcher
 
@@ -61,10 +64,11 @@ Your top sites, shown as icons in both the bar and the sidebar. Press `+` to add
 
 ### Pinned
 
-Tabs you want to keep, at the top of the sidebar. Click the pin on a tab to pin it, or drag it up into Pinned. Click a pinned tab to open it, and click its pin again to unpin. Pinned tabs are stored as a "Pinned" bookmark folder, so they sync.
+Tabs you want to keep, at the top of the sidebar. Click the pin on a tab to pin it, or drag it up into Pinned. Click a pinned tab to open it. Its `⋯` menu has Rename and Unpin. Pinned tabs are stored as a "Pinned" bookmark folder, so they sync.
 
 - The folder button at the bottom right adds a folder. Double-click a pinned tab or folder to rename it.
 - Drag to reorder, or drop onto a folder to put it inside.
+- A pinned tab stays pinned wherever you browse in it. Once you leave the pinned page, a back arrow appears: click it to go back. Or pick **Pin this page instead** from the `⋯` menu to keep the page you're on now.
 - `×` on a folder deletes it and everything in it.
 
 ### New tab toast
@@ -73,7 +77,7 @@ Open a link in a background tab (`Cmd+click`) and a small "New tab opened" note 
 
 ### Copy URL
 
-`Cmd+Shift+C` copies the current page address. No popup, no confirmation.
+`Cmd+Shift+L` copies the current page address. No popup, no confirmation. It was `Cmd+Shift+C` before, but Chrome keeps that for Inspect element. If you installed Compass before this change, the key may be unset: set it at `chrome://extensions/shortcuts`, or from the sidebar's Activity popover.
 
 ### Picture-in-picture
 
@@ -121,6 +125,8 @@ Compass replaces the browser's own tabs and toolbar, so it looks best when Heliu
 - **Frameless mode**: on. Hides Helium's toolbar until you hover the window edge, so the page fills the window and Compass is all you see.
 
 Leave the rest off.
+
+Helium can also copy the page address itself with `Cmd+Shift+C`: under **Appearance**, **Behavior**, choose what that key does. Compass's own Copy URL is for Chrome, where that key opens Inspect element.
 
 ![Helium layout settings: Vertical, tabs on the right, frameless mode on](docs/helium-layout.png)
 

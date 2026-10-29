@@ -21,15 +21,15 @@ Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for 
 | `sidebar.html` / `sidebar.js` | Sidebar. Runs two ways: floating in the overlay iframe (`embed`), or docked in the native side panel. |
 | `switch.html` / `switch.js` | Tab switcher: a grid of the window's tabs by `lastAccessed` (row flow, next = right; columns fit the window, min two rows), with previews. Overlay only. The shortcut again steps to the next tile (`arcNext` in `overlay.js`); releasing the modifier picks. |
 | `favs.js` | Shared by bar and sidebar: Favorites and Pinned (both bookmark folders), favicon URLs, URL detection, `painted()`. |
-| `archive.js` | Pure `staleTabs()` rule for auto-archive, checked by `archive.test.mjs`. `saveArchive()` writes closed tabs to the archive (auto-archive and the sidebar's Clear). |
+| `archive.js` | Pure `staleTabs()` rule for auto-archive, checked by `archive.test.mjs`. `dueTabs()` applies it to the open tabs with the keep rules (favorites, pins, bound tabs); the worker closes those, the sidebar's Activity popover counts them. `saveArchive()` writes closed tabs to the archive (auto-archive and the sidebar's Clear). |
 
 ### Data
 
 - **Favorites** = children of a "Favorites" bookmarks folder. **Pinned** = a "Pinned" bookmarks folder; its subfolders are the sidebar's folders. Folder ids are remembered in `chrome.storage.local` (`favFolderId`, `pinFolderId`) because a title search can hit the wrong folder.
 - These are not Chrome's pinned tabs (`tab.pinned`). Pinning a Chrome-pinned tab moves it into the Pinned folder and unpins it in Chrome.
-- A pinned item "has a tab" when an open tab's URL starts with the bookmark URL (`isUnder`). Loose, on purpose. That tab shows only in Pinned, not in the tab list.
+- A pinned item "has a tab" when that tab is bound to it (opened from the pin, or pinned from the tab), else when an unbound tab's URL starts with the bookmark URL (`isUnder`). Loose, on purpose. That tab shows only in Pinned, not in the tab list. A bound tab stays the pin's tab wherever it browses; off the pinned URL the row shows Back, and its `⋯` menu (a popover, `moreButton`) adds "Pin this page instead".
 - `chrome.storage.local` also holds `archive` (closed tabs, max 500) and `closedFolders` (collapsed Pinned folders).
-- `chrome.storage.session` holds `names` (sidebar tab renames, by tab id; no cleanup: tab ids aren't reused within a session). Pinned items rename through the bookmark title.
+- `chrome.storage.session` holds `names` (sidebar tab renames, by tab id; no cleanup: tab ids aren't reused within a session) and `bound` (pinned bookmark id -> its tab id; auto-archive skips bound tabs). The sidebar's `render()` prunes `bound` to pins and tabs that still exist, and `dueTabs` only honours bindings of existing pins. Pinned items rename through the bookmark title. The worker also writes `workerStart` (its last start) and `lastArchive` (`{ at, n }`) for the sidebar's Activity popover (`#activity`, a popover like `#menu`; `renderActivity()` fills it on open).
 - Tab previews live in `chrome.storage.session` as `shot<tabId>` (JPEG data URL, 320px wide). `background.js` captures the active tab 400ms after activation or load and drops the key on `tabs.onRemoved`.
 - Auto-archive skips active, pinned, audible tabs and anything under a Favorite or Pinned URL.
 
@@ -38,7 +38,10 @@ Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for 
 - `render()` rebuilds Pinned and the tab list from scratch. `schedule()` batches tab and bookmark events into one render, and holds off while a drag or a folder rename is in progress.
 - One drag system for both lists: `press` → `beginDrag` → `updateDrag` → `endDrag`, set up per list by a spec (`tabDrag`, `pinnedDrag`) giving the list, which rows it may pass, and `commit`. The row lifts and follows the pointer and the others slide aside. In Pinned, hovering the middle of a folder means "drop into it". A tab dragged up over Pinned files into the folder under the pointer (`hoverFolder`).
 - `renaming` is one-shot (a bookmark id or a tab id): the next render that draws the row uses it up. Keep it that way, or a stale value pops the rename field on a later expand.
-- Deleting a non-empty folder asks once more on the button itself. No `alert` / `confirm` dialogs anywhere.
+- Deleting a non-empty folder asks once more on the button itself, and so does the footer's Clear (close other tabs). No `alert` / `confirm` dialogs anywhere. A confirm state sets `ariaLabel` along with the text, or screen readers keep hearing the resting label.
+- Tooltips: `tip(el, text)` sets `data-tip` (drawn by CSS, 300ms delay) and the `aria-label`. Once one has shown, `tips-warm` on `<html>` makes the next appear at once; a 400ms pause off them resets it. The native `title` is only used where there's no button.
+- Footer (`#foot`, fixed): Clear left, Activity and New folder right. Activity (`#activity`, a popover like `#menu`) opens on hover after 300ms or on click, closes 250ms after the pointer leaves it; `renderActivity()` fills it before it shows. Click focuses it, hover never does.
+- A popover's trigger stays lit while it's open: `.x.open` on a row's ⋯ (set in `moreButton`, cleared on the menu's `toggle`), `body:has(#activity:popover-open)` for the chart icon.
 
 ## Gotchas
 
@@ -48,6 +51,8 @@ Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for 
 - `chrome.bookmarks.move` within one folder: Chrome shifts the index itself when moving down. Don't adjust it again.
 - Bookmark changes have no undo. Anything that deletes bookmarks needs a confirm step.
 - Favorites match open tabs loosely (`openTabFor`: URL prefix, else same host); Pinned items match by prefix only (`isUnder`), so two Google Docs can be pinned separately.
+- `suggested_key` only applies when Chrome first sees a command, and never when Chrome owns the key (Cmd+Shift+C is Inspect element; Cmd+Shift+L was refused too, cause unknown). Existing installs keep their old keys. A refused key shows as "not set" with no error anywhere; `chrome://extensions/shortcuts` is the only place to see why.
+- The overlay removes the iframe the instant it gets `close`, so anything the sidebar must finish (a storage write) goes before `close()`, not after an `await`.
 
 ## Checking changes
 
