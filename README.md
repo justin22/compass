@@ -154,3 +154,7 @@ showing its impact.
 - The overlay cannot draw on browser pages like `chrome://settings` or the Web Store. The bar falls back to the toolbar popup there, and the sidebar opens as the native side panel. The browser decides which side that panel is on. In Chrome you can move it to the left at `chrome://settings/appearance` (**Side panel position**).
 - The 12 hour archive limit and the 150ms edge hover delay are fixed in code. Change them in `archive.js` and `content.js` if they feel wrong.
 - To add a search site, add a line to the `ENGINES` list in `bar.js`.
+
+## Credits
+
+The icons in the sidebar are from [Lucide](https://lucide.dev), used under its [ISC license](https://lucide.dev/license).
