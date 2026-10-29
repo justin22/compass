@@ -9,6 +9,8 @@ Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for 
 - **Lazy and minimal.** Smallest working change, no abstractions for one caller, no settings for values that don't change. Corners cut on purpose get a `// ponytail:` comment naming the limit and the upgrade path.
 - **Match the code around you.** Short lowercase comments that say why, terse names, `replaceChildren` re-renders, no frameworks.
 - **README** is user-facing and kept simple: short sentences, no implementation detail. Update it when behaviour changes. The "no human has reviewed this code" notice stays at the top.
+- **BROWSERS.md** holds per-browser setup (vertical tabs, frameless mode, key conflicts), one heading per browser with a table of contents at the top. Helium is the tested one; add a heading, not a paragraph in the README, for a new browser.
+- **HOW-IT-WORKS.md** explains what each feature is underneath (pins are bookmarks, previews are session memory) for curious users, in plain words and no code. Update it when the storage model or a mechanism changes; this file stays the one with function names.
 
 ## How it fits together
 
