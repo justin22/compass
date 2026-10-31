@@ -1,5 +1,5 @@
 import { saveArchive, dueTabs } from './archive.js';
-import { favicon, hasScheme, looksLikeUrl, listFavs, addFav, removeBookmark, openTabFor, isUnder, pinnedTree, linksIn, addPin, favTile, addTile, painted } from './favs.js';
+import { favicon, hasScheme, looksLikeUrl, listFavs, addFav, removeBookmark, openTabFor, isUnder, pinnedTree, linksIn, addPin, favTile, addTile, painted, overlayKey } from './favs.js';
 
 const favsEl = document.querySelector('#favs');
 const tabsEl = document.querySelector('#tabs');
@@ -7,7 +7,9 @@ const pinnedEl = document.querySelector('#pinned');
 const { id: windowId } = await chrome.windows.getCurrent(); // the side panel is per window
 const PIN = document.querySelector('#dock svg').outerHTML; // same pin icon as the dock button
 const embed = window.top !== window; // floating over the page vs. the native side panel
+if (embed) await overlayKey();
 const close = () => parent.postMessage({ arcBar: 'close' }, '*');
+const clearBtn = document.querySelector('#clear'); // here, not with Clear below: render() touches it
 let drag = null; // the reorder in progress
 let suppressClick = false; // the click that ends a drag shouldn't also switch tabs
 let cursorId = null; // keyboard cursor: the row ↑↓ moves and Enter opens (follows the mouse too)
@@ -19,16 +21,12 @@ let names = {}; // tab names given here, by tab id; session storage, so gone whe
 let bound = {}; // pinned item (bookmark id) -> the tab it opened or was pinned from; it stays that pin's tab wherever it browses (session storage; render() prunes it)
 const closedFolders = new Set((await chrome.storage.local.get('closedFolders')).closedFolders); // collapsed Pinned folders
 
-function setCursor(id, scroll = false) {
+function setCursor(id, focus = false) {
   cursorId = id;
-  for (const li of tabsEl.children) {
-    const on = +li.dataset.id === id;
-    li.classList.toggle('cursor', on);
-    li.ariaSelected = on;
-  }
-  tabsEl.setAttribute('aria-activedescendant', id == null ? '' : `t${id}`);
-  if (scroll) tabsEl.querySelector('.cursor')?.scrollIntoView({ block: 'nearest' }); // keys only: a re-render (pin, new folder) keeps your scroll spot
+  for (const li of tabsEl.children) li.classList.toggle('cursor', +li.dataset.id === id);
+  if (focus) tabsEl.querySelector('.cursor .t')?.focus(); // keys only (focus scrolls it into view): a re-render (pin, new folder) keeps your scroll spot
 }
+tabsEl.onfocusin = e => { const id = e.target.closest('li')?.dataset.id; if (id) setCursor(+id); }; // tabbing onto a row moves the cursor too
 
 if (embed) document.documentElement.classList.add('embed');
 
@@ -81,6 +79,25 @@ addEventListener('pointerout', e => {
   coolTimer = setTimeout(() => document.documentElement.classList.remove('tips-warm'), 400); // time to reach the next one
 });
 
+// floating only: resting on a tab's row for 300ms shows its preview (the switcher's shot) beside the panel; the overlay draws it, there's no room inside.
+// Like the tooltips: once one is showing, the next row's swaps in at once; a short pause off the rows resets that
+let previewWarm = false, previewHide;
+const hidePreview = () => { clearTimeout(previewHide); previewWarm = false; parent.postMessage({ arcBar: 'preview' }, '*'); };
+function preview(li, tabId) {
+  if (!embed) return;
+  let timer;
+  li.addEventListener('mouseenter', () => {
+    clearTimeout(previewHide);
+    timer = setTimeout(() => {
+      // only the tab id crosses to the page: the overlay fetches the shot and URL through the worker, since the page can listen to these messages too
+      previewWarm = true;
+      parent.postMessage({ arcBar: 'preview', id: tabId, y: li.getBoundingClientRect().top }, '*');
+    }, previewWarm ? 0 : 300);
+  });
+  li.addEventListener('mouseleave', () => { clearTimeout(timer); previewHide = setTimeout(hidePreview, 150); }); // time to reach the next row
+  li.addEventListener('pointerdown', hidePreview);
+}
+
 function closeButton(t) {
   const x = document.createElement('button');
   x.className = 'x';
@@ -100,8 +117,9 @@ function iconButton(cls, svg, title, onClick) {
   return b;
 }
 
+// the row's name is a real button: Tab reaches it, screen readers read it, its click bubbles to the row
 function label(text) {
-  const t = document.createElement('span');
+  const t = document.createElement('button');
   t.className = 't';
   t.textContent = text;
   return t;
@@ -193,7 +211,7 @@ function pinnedRows(node, tabOf, depth = 0) { // tabOf: bookmark id -> its open 
       li.className = 'folder';
       li.dataset.folder = b.id; // a row dropped here goes in this folder
       if (open) li.dataset.open = '1';
-      li.ariaExpanded = open;
+      if (!editing) name.ariaExpanded = open;
       li.innerHTML = open ? FOLDER_OPEN : FOLDER;
       const del = document.createElement('button');
       del.className = 'x';
@@ -237,7 +255,7 @@ function pinnedRows(node, tabOf, depth = 0) { // tabOf: bookmark id -> its open 
       ['Rename', () => { renaming = b.id; schedule(); }],
       ['Unpin', () => removeBookmark(b)],
     ]));
-    if (tab) li.append(closeButton(tab)); // closes the tab, keeps the pin
+    if (tab) { li.append(closeButton(tab)); preview(li, tab.id); } // × closes the tab, keeps the pin
     li.onclick = () => { if (!suppressClick) tab ? activate(tab) : openPin(b); };
     return [li];
   });
@@ -254,17 +272,13 @@ function tabItem(t) {
   const li = document.createElement('li');
   li.className = t.active ? 'active' : '';
   li.dataset.id = t.id;
-  li.id = `t${t.id}`;
-  li.role = 'option';
   li.classList.toggle('cursor', t.id === cursorId);
-  li.ariaSelected = t.id === cursorId;
   li.onmousemove = () => { if (cursorId !== t.id) setCursor(t.id); }; // one highlight, whether mouse or keys
   const img = document.createElement('img');
   img.src = favicon(t.url || t.pendingUrl);
   img.alt = '';
   const name = names[t.id] ?? (t.title || t.url);
-  const title = document.createElement('span');
-  title.className = 't';
+  const title = label('');
   const text = document.createElement('span');
   text.textContent = name;
   title.append(text);
@@ -289,6 +303,7 @@ function tabItem(t) {
     li.classList.add('marquee');
   };
   li.onmouseleave = () => { li.classList.remove('marquee'); text.style.translate = ''; };
+  preview(li, t.id);
   li.onclick = () => { if (!suppressClick) activate(t); };
   li.onauxclick = e => { if (e.button === 1) chrome.tabs.remove(t.id); }; // middle-click closes
   li.ondblclick = () => { renaming = t.id; schedule(); }; // the first click switched to it already; floating, that only works on the current tab
@@ -518,6 +533,7 @@ tick();
 for (const ev of ['onCreated', 'onRemoved', 'onChanged', 'onMoved']) chrome.bookmarks[ev].addListener(() => { renderFavs(); schedule(); });
 chrome.storage.onChanged.addListener((c, area) => { if (area === 'session' && (c.names || c.bound)) schedule(); }); // a tab renamed or bound here or in the other sidebar
 
+document.querySelector('#github').onclick = () => chrome.tabs.create({ url: 'https://github.com/justin22/compass', windowId });
 document.querySelector('#newfolder').onclick = async () => {
   const f = await chrome.bookmarks.create({ parentId: (await pinnedTree()).id, title: 'New Folder' });
   renaming = f.id; // shows up with its name selected, ready to type
@@ -525,7 +541,6 @@ document.querySelector('#newfolder').onclick = async () => {
 };
 // Clear (Arc-style): close the open tabs below Pinned in one go, archived first so the bar finds them.
 // Keeps the tab you're on (closing every tab would close the window) and Chrome-pinned tabs.
-const clearBtn = document.querySelector('#clear');
 const clearable = () => [...tabsById.values()].filter(t => !t.active && !t.pinned);
 const clearLabel = clearBtn.querySelector('span');
 const unconfirm = () => { clearBtn.classList.remove('confirm'); clearLabel.textContent = ''; clearBtn.ariaLabel = clearBtn.dataset.tip; };
@@ -553,20 +568,22 @@ const key = c => c.shortcut || (c.name === 'open-bar' ? `${/Mac/.test(navigator.
 async function renderActivity() {
   const now = Date.now();
   const [all, due, cmds, disk, { archive = [] }, alarm, { workerStart, lastArchive }] = await Promise.all([
-    chrome.tabs.query({}), dueTabs(), chrome.commands.getAll(), chrome.storage.local.getBytesInUse(),
+    chrome.tabs.query({}), dueTabs(), chrome.commands.getAll(), chrome.storage.local.getBytesInUse('archive'),
     chrome.storage.local.get('archive'), chrome.alarms.get('archive'), chrome.storage.session.get(['workerStart', 'lastArchive']),
   ]);
+  const { autoArchive } = await chrome.storage.sync.get({ autoArchive: true });
   const shots = all.map(t => `shot${t.id}`); // previews exist only for open tabs, so no key listing needed
   const previews = await chrome.storage.session.getBytesInUse(shots);
   act.replaceChildren(
     sec('Tabs'),
     row('Open', all.length), row('Sleeping', all.filter(t => t.discarded).length), row('Due to archive', due.length),
     sec('Auto-archive'),
-    row('Next run', alarm ? `in ${span(alarm.scheduledTime - now)}` : 'not scheduled', !alarm),
+    row('Next run', !autoArchive ? 'off in options' : alarm ? `in ${span(alarm.scheduledTime - now)}` : 'not scheduled', !autoArchive || !alarm),
     row('Last run', lastArchive ? `${lastArchive.n} closed, ${span(now - lastArchive.at)} ago` : 'nothing yet', !lastArchive),
     row('Archived pages', archive.length),
     sec('Storage', el('button', { textContent: 'Clear previews', onclick: () => chrome.storage.session.remove(shots).then(renderActivity) })),
     row('Previews (memory)', bytes(previews)), row('Archive (disk)', bytes(disk)),
+    sec('Settings', el('button', { textContent: 'Open', onclick: () => chrome.runtime.openOptionsPage().catch(() => chrome.tabs.create({ url: chrome.runtime.getURL('options.html'), windowId })) })), // the page as a tab if the browser has no options dialog
     sec('Shortcuts', el('button', { textContent: 'Change', onclick: () => chrome.tabs.create({ url: 'chrome://extensions/shortcuts', windowId }) })), // an old install keeps its old keys; new commands can come up unset
     ...cmds.filter(c => c.description).map(c => row(c.description, key(c) || 'not set', !key(c))), // drops Chrome's own _execute_action (the toolbar icon)
     sec('Background worker'),

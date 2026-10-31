@@ -1,0 +1,10 @@
+/* Favorite tiles (favs.js builds them), shared by the command bar and the sidebar. Each page sets the tile's size and the --tile / --muted colours. */
+.tile { position: relative; display: grid; place-items: center; border: 0; border-radius: 10px; background: var(--tile); color: var(--muted); transition: background-color .18s ease-out, scale 140ms cubic-bezier(0.23, 1, 0.32, 1); }
+.tile:hover { transition: background-color 0s, scale 140ms cubic-bezier(0.23, 1, 0.32, 1); } /* lights up at once, fades out */
+.tile:not(.add):hover { background: var(--tile-hover); }
+.tile:active { scale: .96; }
+.tile.add { background: none; border: 1px dashed rgb(128 128 128 / .3); }
+.tile .x { position: absolute; top: -5px; right: -5px; width: 16px; height: 16px; display: grid; place-items: center; border-radius: 50%; background: var(--bg); color: var(--muted); font-size: 12px; line-height: 1; box-shadow: 0 1px 2px rgb(0 0 0 / .2); }
+.tile .x:hover { color: var(--fg); }
+@media (hover: hover) and (pointer: fine) { .tile .x { opacity: 0; transition: opacity .12s ease; } .tile:hover .x { opacity: 1; } } /* hover-revealed only where hover exists */
+@media (prefers-reduced-motion: reduce) { .tile { transition: background-color .18s ease-out; } .tile:active { scale: 1; } } /* keep the colour fade, drop the press */

@@ -74,7 +74,7 @@ Searching is all Chrome's own APIs: open tabs, bookmarks, history, plus the arch
 
 ## Tab switcher previews
 
-Four hundred milliseconds after you switch to a tab, or a page finishes loading, Compass takes a picture of it, shrinks it to 320 pixels wide, and keeps it in session memory. The switcher shows those pictures. A tab you have not looked at since the browser started has no picture yet, so it shows its icon instead.
+Four hundred milliseconds after you switch to a tab, or a page finishes loading, Compass takes a picture of it, shrinks it to 640 pixels wide, and keeps it in session memory. The switcher shows those pictures, and so does the floating sidebar when you rest the mouse on a tab. A tab you have not looked at since the browser started has no picture yet, so it shows its icon instead.
 
 Pictures are dropped when their tab closes and all of them vanish when the browser closes. They never touch the disk.
 
@@ -82,9 +82,17 @@ Pictures are dropped when their tab closes and all of them vanish when the brows
 
 These three run a small script inside the page itself. Copy URL writes to the clipboard from the page. Picture-in-picture finds the largest video on the page and pops it out. The toast adds a small button at the top of the page you stayed on. Because they run inside the page, they cannot work on Chrome's own pages, where scripts are not allowed.
 
+## Peek
+
+Peek shows the linked page inside a frame drawn over the page you are on, like the command bar. Most sites tell the browser not to show them inside other pages, so while a peek is open Compass removes that instruction from the peeked site's replies, and only for frames. Every site the peek visits is added to that allowance, and it is all taken back the moment the peek closes. The peek keeps its own short list of the pages it has shown, and Back reopens the previous one. Two side effects: the browser treats the peeked page as a third party, so some sites show you signed out, and links inside the peek that lead to a different site may refuse to load.
+
+## Settings
+
+The switches are saved in Chrome's synced extension storage, so they follow your Chrome account. A switch that was never touched counts as on.
+
 ## The left edge
 
-A tiny script in every page watches the mouse. Rest it within eight pixels of the left edge for 150 milliseconds and the script asks Compass to open the floating sidebar. If the sidebar is already docked, nothing happens.
+A tiny script in every page watches the mouse. Rest it within eight pixels of the left edge for 150 milliseconds and the script asks Compass to open the floating sidebar. If the mouse leaves the page through its left side, as it does when browser controls sit between the page and the screen edge, it opens at once, since there is no edge to rest on. If the sidebar is already docked, nothing happens.
 
 ## Where things live
 
