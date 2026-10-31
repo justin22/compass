@@ -90,6 +90,8 @@ Open a link in a background tab (`Cmd+click`) and a small "New tab opened" note 
 
 ### Peek
 
+![A Reddit post opened in a peek panel over the page, with a close button above its corner](docs/store-assets/08-peek.jpg)
+
 `Shift+click` a link, or right-click it and choose **Peek**. The page opens in a panel over the one you are on, so you never leave it. Close it with the × above the panel, a click outside it, or `Esc`. `Shift+click` a link inside a peek and the peek goes to that page; a ← button appears next to the × to take you back, or use the browser's back shortcut. Peeks don't stack: `Shift+click` on the page behind swaps the peek for the new link and starts over. Some sites show their signed-out page in a peek, and a few refuse to load at all; open those in a tab as usual.
 
 ### Settings
