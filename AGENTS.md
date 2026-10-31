@@ -16,13 +16,14 @@ Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for 
 
 | Piece | What it does |
 |---|---|
-| `background.js` | Service worker. Shortcuts, Cmd+T swap (closes the blank new tab, opens the bar), Copy URL, the background-tab toast, the 30-minute archive alarm. Injects `overlay.js` into the active tab to show the bar or sidebar. |
-| `overlay.js` | Draws a `<dialog>` with an iframe of `bar.html` or `sidebar.html` over the page. Talks to the frame with `postMessage` (`arcBar: 'close' / 'height' / 'focus'`). |
-| `content.js` | Edge hover: mouse resting on the left edge for 150ms asks the background to open the floating sidebar. |
+| `background.js` | Service worker. Shortcuts, Cmd+T swap (closes the blank new tab, opens the bar), Copy URL, the background-tab toast, the Peek context menu (a `declarativeNetRequest` session rule that un-blocks framing for the peeked host, then the overlay with `view: 'peek'`), the 30-minute archive alarm. Injects `overlay.js` into the active tab to show the bar or sidebar. |
+| `overlay.js` | Draws a `<dialog>` with an iframe of `bar.html` or `sidebar.html` over the page. Talks to the frame with `postMessage` (`arcBar: 'close' / 'height' / 'focus' / 'preview'`). Draws the sidebar's hover preview card (`.shot`) beside the panel, fetching the shot from the worker (`shot` message). |
+| `content.js` | Edge hover: mouse resting on the left edge for 150ms asks the background to open the floating sidebar. Shift+click on a link asks for a peek (`peek` message); runs in all frames for that, the edge hover only in the top one. |
 | `bar.html` / `bar.js` | Command bar: search tabs, bookmarks, history, archived tabs; site search engines (`ENGINES`); favorites with Cmd+1..9. |
 | `sidebar.html` / `sidebar.js` | Sidebar. Runs two ways: floating in the overlay iframe (`embed`), or docked in the native side panel. |
 | `switch.html` / `switch.js` | Tab switcher: a grid of the window's tabs by `lastAccessed` (row flow, next = right; columns fit the window, min two rows), with previews. Overlay only. The shortcut again steps to the next tile (`arcNext` in `overlay.js`); releasing the modifier picks. |
-| `favs.js` | Shared by bar and sidebar: Favorites and Pinned (both bookmark folders), favicon URLs, URL detection, `painted()`. |
+| `favs.js` / `favs.css` | Shared by bar and sidebar: Favorites and Pinned (both bookmark folders), favicon URLs, URL detection, `painted()`, `overlayKey()`; the favorite tiles' styles. |
+| `options.html` / `options.js` | Options page (`options_ui`, embedded in `chrome://extensions`; the sidebar's Activity popover opens it with `runtime.openOptionsPage`): off switches in `chrome.storage.sync` for the behaviours that displace a browser default (`swapNewTab`, `shiftPeek`, `edgeHover`) for tab previews (`previews`) and for auto-archive (`autoArchive`, checked per alarm; the Activity popover shows "off in options"). Missing means on; `content.js` caches them and follows `storage.onChanged`, the worker reads `swapNewTab` per new tab and `previews` per shot, and drops all `shot*` keys when `previews` turns off. |
 | `archive.js` | Pure `staleTabs()` rule for auto-archive, checked by `archive.test.mjs`. `dueTabs()` applies it to the open tabs with the keep rules (favorites, pins, bound tabs); the worker closes those, the sidebar's Activity popover counts them. `saveArchive()` writes closed tabs to the archive (auto-archive and the sidebar's Clear). |
 
 ### Data
@@ -32,7 +33,7 @@ Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for 
 - A pinned item "has a tab" when that tab is bound to it (opened from the pin, or pinned from the tab), else when an unbound tab's URL starts with the bookmark URL (`isUnder`). Loose, on purpose. That tab shows only in Pinned, not in the tab list. A bound tab stays the pin's tab wherever it browses; off the pinned URL the row shows Back, and its `⋯` menu (a popover, `moreButton`) adds "Pin this page instead".
 - `chrome.storage.local` also holds `archive` (closed tabs, max 500) and `closedFolders` (collapsed Pinned folders).
 - `chrome.storage.session` holds `names` (sidebar tab renames, by tab id; no cleanup: tab ids aren't reused within a session) and `bound` (pinned bookmark id -> its tab id; auto-archive skips bound tabs). The sidebar's `render()` prunes `bound` to pins and tabs that still exist, and `dueTabs` only honours bindings of existing pins. Pinned items rename through the bookmark title. The worker also writes `workerStart` (its last start) and `lastArchive` (`{ at, n }`) for the sidebar's Activity popover (`#activity`, a popover like `#menu`; `renderActivity()` fills it on open).
-- Tab previews live in `chrome.storage.session` as `shot<tabId>` (JPEG data URL, 320px wide). `background.js` captures the active tab 400ms after activation or load and drops the key on `tabs.onRemoved`.
+- Tab previews live in `chrome.storage.session` as `shot<tabId>` (JPEG data URL, 640px wide). `background.js` captures the active tab 400ms after activation or load and drops the key on `tabs.onRemoved`.
 - Auto-archive skips active, pinned, audible tabs and anything under a Favorite or Pinned URL.
 
 ### Sidebar internals (`sidebar.js`)
@@ -42,7 +43,8 @@ Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for 
 - `renaming` is one-shot (a bookmark id or a tab id): the next render that draws the row uses it up. Keep it that way, or a stale value pops the rename field on a later expand.
 - Deleting a non-empty folder asks once more on the button itself, and so does the footer's Clear (close other tabs). No `alert` / `confirm` dialogs anywhere. A confirm state sets `ariaLabel` along with the text, or screen readers keep hearing the resting label.
 - Tooltips: `tip(el, text)` sets `data-tip` (drawn by CSS, 300ms delay) and the `aria-label`. Once one has shown, `tips-warm` on `<html>` makes the next appear at once; a 400ms pause off them resets it. The native `title` is only used where there's no button.
-- Footer (`#foot`, fixed): Clear left, Activity and New folder right. Activity (`#activity`, a popover like `#menu`) opens on hover after 300ms or on click, closes 250ms after the pointer leaves it; `renderActivity()` fills it before it shows. Click focuses it, hover never does.
+- Footer (`#foot`, fixed): Clear left; New folder and Activity right. The GitHub link (`#github`) sits in the top bar before the clock. Activity (`#activity`, a popover like `#menu`) opens on hover after 300ms or on click, closes 250ms after the pointer leaves it; `renderActivity()` fills it before it shows. Click focuses it, hover never does.
+- Row names (tabs, pins, folders) are `<button class="t">`: Tab reaches them, screen readers read them, the click bubbles to the row. ↑↓ moves the cursor and focuses that row's button; `onfocusin` keeps the cursor on the focused row. Action buttons (×, pin, ⋯) sit beside the name, so there's no `listbox`/`option` (an option's children are presentational to screen readers).
 - A popover's trigger stays lit while it's open: `.x.open` on a row's ⋯ (set in `moreButton`, cleared on the menu's `toggle`), `body:has(#activity:popover-open)` for the chart icon.
 
 ## Gotchas
@@ -54,6 +56,9 @@ Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for 
 - Bookmark changes have no undo. Anything that deletes bookmarks needs a confirm step.
 - Favorites match open tabs loosely (`openTabFor`: URL prefix, else same host); Pinned items match by prefix only (`isUnder`), so two Google Docs can be pinned separately.
 - `suggested_key` only applies when Chrome first sees a command, and never when Chrome owns the key (Cmd+Shift+C is Inspect element; Cmd+Shift+L was refused too, cause unknown). Existing installs keep their old keys. A refused key shows as "not set" with no error anywhere; `chrome://extensions/shortcuts` is the only place to see why.
+- The frame pages are web-accessible, so any site can iframe them. The overlay's frame URL carries `?k=` (the worker's `storage.session` `key`); an embedded frame without it blanks itself (`overlayKey()`), and parent messages must carry the same `k`. Nothing sensitive goes to the page over `postMessage`: the page can listen to it (the preview sends only a tab id).
+- `content.js` ignores untrusted (page-dispatched) mouse events.
+- Peek strips `X-Frame-Options` and `Content-Security-Policy` from `sub_frame` responses of every host the peek has shown (session rule id 1, `requestDomains` grows via `allowFrames`). The overlay sends `peekClosed` on close and on `pagehide`; the worker removes the rule. Any site could frame those hosts during a peek, so the rule must never outlive one. The peek iframe is named `compass-peek:<peekKey>` (`storage.session`, fresh per peek); `content.js` inside it sends `peekGo` with that key before navigating the frame to a new host, and the worker ignores the message without it, since any page can name its own iframe the same way. `content.js` also requires `parent === top`: a peeked site learns the name and could pass it to a frame of its own, but that frame's parent is the peek, not the page. The peek iframe is sandboxed without `allow-top-navigation`, so framebusters can't take the page over. `content.js` inside the frame reports each page load and Esc to the worker (`peekDo`, key-checked), which relays to frame 0 via `tabs.sendMessage`; the overlay listens on `runtime.onMessage`, keeps the URL list (`urls`) and Back sets `frame.src` to the previous one. Not `history.back()`: the joint history's length never says where in it the frame is.
 - The overlay removes the iframe the instant it gets `close`, so anything the sidebar must finish (a storage write) goes before `close()`, not after an `await`.
 
 ## Checking changes
@@ -62,12 +67,25 @@ Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for 
 - `node --check <file>.js` for syntax.
 - Everything else is manual: reload the extension at `chrome://extensions` and try it. Say so when you haven't.
 
+### Reviewing
+
+When asked to review (or before a store upload), read every file, not just the diff, and check each of these. Report findings by file and line, most serious first; fix only when asked.
+
+- **Security.** Nothing sensitive crosses to the page: `postMessage` traffic is readable by the host page, and the frame pages are web-accessible (see Gotchas). Page-controlled strings go in via `textContent`, `innerHTML` only takes our own constants. Mouse events from the page are untrusted. Injected functions are self-contained and don't trust page globals.
+- **Accessibility.** Every control has a name (text, `aria-label`, or `tip()`), is reachable by keyboard, and shows focus. No interactive children inside roles that make them presentational (`option`, `button`). Confirm states rename the control. Decorative images have `alt=""`. Motion has a `prefers-reduced-motion` fallback that keeps the fade. Muted text stays at 4.5:1.
+- **Leaks.** Listeners added on `window`, `document` or the page are removed when their element goes; timers are cleared; per-window and per-tab maps are pruned on `onRemoved`; session storage keys die with their tab.
+- **Dead code.** Unused exports, helpers, classes, CSS rules and variables. A rule declared twice. The same CSS in two pages (share it, as `favs.css`).
+- **Comments.** Say why, not what. Delete ones that restate the line, describe code that moved, or explain a fix long gone. Keep `ponytail:` notes current.
+- **JS.** Declaration order a reader can follow (no use-before-define that only works by timing). No one-line chains of four awaits. No comma-operator cleverness. Errors swallowed only with a comment saying why. Modern APIs within `minimum_chrome_version`.
+- **CSS.** Transition exact properties, never `all`. Animate `translate`, `scale`, `opacity`. Enter from a visible state (`scale(.97)`, not `0`), exit faster than enter, `ease-out` curves. Hover-revealed controls (a × that appears on hover) behind `@media (hover: hover)`, so touch users always see them; plain hover tints need no guard. Tokens over hard-coded colours.
+- **Extension.** Manifest V3 rules: user-gesture APIs (`sidePanel.open`, `openPopup`) called before any `await`; `onMessage` returns `true` only when replying async; nothing assumes the worker stays alive (state in storage, alarms created once); `web_accessible_resources` and permissions no wider than needed; `chrome://` fallbacks for anything injected.
+
 ## Shipping
 
 Store zip, built from the project folder (zips are gitignored):
 
 ```
-zip -r compass-$(node -p "require('./manifest.json').version").zip manifest.json *.js *.html icons/compass-modern-{16,32,48,128}.png
+zip -r compass-$(node -p "require('./manifest.json').version").zip manifest.json *.js *.css *.html icons/compass-modern-{16,32,48,128}.png
 ```
 
 Bump `version` in `manifest.json` before each new store upload. The store rejects a version it has already seen.

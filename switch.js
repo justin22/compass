@@ -1,8 +1,9 @@
 // Tab switcher: a grid of the window's tabs, most recent first, read left to right then down, with the previews background.js keeps. Always in the overlay.
-import { favicon, painted } from './favs.js';
+import { favicon, painted, overlayKey } from './favs.js';
 
 const strip = document.querySelector('#strip');
 const close = () => parent.postMessage({ arcBar: 'close' }, '*');
+const key = await overlayKey();
 const { id: windowId } = await chrome.windows.getCurrent();
 const tabs = (await chrome.tabs.query({ windowId })).sort((a, b) => (b.lastAccessed ?? 0) - (a.lastAccessed ?? 0)); // like Cmd+Tab
 const shots = await chrome.storage.session.get(tabs.map(t => `shot${t.id}`));
@@ -12,6 +13,7 @@ let holding = true; // still holding the shortcut's modifier? letting go picks, 
 const tiles = tabs.map((t, i) => {
   const el = document.createElement('div');
   el.className = 'tab';
+  el.id = `s${i}`;
   el.role = 'option';
   el.title = t.title;
   const shot = document.createElement('div');
@@ -31,7 +33,7 @@ const tiles = tabs.map((t, i) => {
   cap.append(fav, label);
   el.append(shot, cap);
   el.onmousemove = () => { if (sel !== i) select(i); };
-  el.onclick = pick;
+  el.onclick = () => { select(i); pick(); }; // select too: no mousemove precedes a click when the pointer was already resting here
   return el;
 });
 // as many 200px columns as fit, but at least two rows: a handful of tabs shouldn't be one long line
@@ -43,6 +45,7 @@ strip.replaceChildren(...tiles);
 function select(i) {
   sel = (i + tabs.length) % tabs.length; // wraps
   tiles.forEach((el, j) => { el.classList.toggle('sel', j === sel); el.ariaSelected = j === sel; });
+  strip.setAttribute('aria-activedescendant', `s${sel}`);
   tiles[sel].scrollIntoView({ inline: 'nearest', block: 'nearest' });
 }
 function pick() {
@@ -65,7 +68,7 @@ addEventListener('keyup', e => {
 });
 addEventListener('pointermove', e => { if (!mod(e)) holding = false; });
 addEventListener('message', e => {
-  if (e.source !== parent) return;
+  if (e.source !== parent || e.data?.k !== key) return; // the page can message this frame too
   if (e.data?.arcBar === 'next') select(sel + 1); // the shortcut, pressed again
   if (e.data?.arcBar === 'focus') strip.focus();
 });

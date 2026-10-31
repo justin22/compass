@@ -1,10 +1,11 @@
-import { favicon, hasScheme, looksLikeUrl, listFavs, addFav, removeBookmark, openTabFor, favTile, addTile, painted } from './favs.js';
+import { favicon, hasScheme, looksLikeUrl, listFavs, addFav, removeBookmark, openTabFor, favTile, addTile, painted, overlayKey } from './favs.js';
 
 const input = document.querySelector('input');
 const list = document.querySelector('ul');
 const bar = document.querySelector('.bar');
 const favsEl = document.querySelector('#favs');
 const embed = window.top !== window; // inside the page overlay vs. the toolbar popup
+const key = embed ? await overlayKey() : null;
 const close = () => embed ? parent.postMessage({ arcBar: 'close' }, '*') : window.close();
 const pill = document.querySelector('#pill');
 const placeholder = input.placeholder;
@@ -19,7 +20,7 @@ const ENGINES = [
   { name: 'Amazon', url: 'https://www.amazon.com/s?k=%s' },
   { name: 'Reddit', url: 'https://www.reddit.com/search/?q=%s' },
   { name: 'LinkedIn', url: 'https://www.linkedin.com/search/results/all/?keywords=%s' },
-  { name: 'YouTube', url: 'https://www.youtube.com/results?search_query=%s' },
+  { name: 'YouTube', url: 'https://www.youtube.com/results?search_query=%s', alias: ['yt'] },
   { name: 'GitHub', url: 'https://github.com/search?q=%s' },
   { name: 'X', url: 'https://x.com/search?q=%s', alias: ['twitter'] },
   { name: 'Wikipedia', url: 'https://en.wikipedia.org/w/index.php?search=%s' },
@@ -184,7 +185,7 @@ document.addEventListener('keydown', e => { // on the document: works even if fo
 });
 
 window.addEventListener('focus', () => input.focus()); // overlay focuses the frame, hand it to the input
-window.addEventListener('message', e => { if (e.source === parent && e.data?.arcBar === 'focus') input.focus(); });
+window.addEventListener('message', e => { if (e.source === parent && e.data?.k === key && e.data.arcBar === 'focus') input.focus(); });
 input.focus();
 await Promise.all([update(), renderFavs()]);
 if (embed) await painted();

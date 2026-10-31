@@ -62,6 +62,8 @@ export function favTile(fav, { title = fav.title, onOpen, onRemove }) {
   const b = document.createElement('button');
   b.className = 'tile';
   b.title = title;
+  b.ariaLabel = title; // the name would otherwise come from its content: the × span
+  b.ariaDescription = 'Delete key removes it'; // the × is a span (buttons can't nest), so the keyboard path needs saying
   const img = document.createElement('img');
   img.src = favicon(fav.url);
   img.alt = '';
@@ -79,9 +81,18 @@ export function addTile(onAdd) {
   const b = document.createElement('button');
   b.className = 'tile add';
   b.textContent = '+';
-  b.title = 'Add current page to favorites';
+  b.title = b.ariaLabel = 'Add current page to favorites';
   b.onclick = onAdd;
   return b;
+}
+
+// Floating pages are web-accessible, so any site could iframe them (clickjacking the tab list). The overlay's frame URL carries
+// the worker's session key; a frame without it stops. Also the key a parent message must carry to count as the overlay's.
+export async function overlayKey() {
+  const k = new URLSearchParams(location.search).get('k');
+  const { key } = await chrome.storage.session.get('key');
+  if (!k || k !== key) { document.body.replaceChildren(); throw new Error('Compass: this page was embedded by something other than the overlay'); }
+  return k;
 }
 
 // The frame paints separately from the page: wait for icons to decode and two frames to paint,

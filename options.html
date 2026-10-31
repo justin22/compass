@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Compass options</title>
+<style>
+  :root { --bg: #ececef; --fg: #1c1c1e; --muted: #65656a; --tile: rgb(0 0 0 / .05); }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1e1e20; --fg: #f2f2f7; --muted: #98989d; --tile: rgb(255 255 255 / .06); } }
+  body { position: relative; width: 360px; margin: 0; padding: 14px 16px 16px; background: var(--bg); color: var(--fg); font: 13px/1.4 system-ui, sans-serif; }
+  h1 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  h1:not(:first-child) { margin-top: 14px; }
+  label { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; background: var(--tile); margin-bottom: 6px; cursor: pointer; }
+  input { margin: 3px 0 0; flex: none; accent-color: #0a84ff; }
+  b { display: block; font-weight: 500; }
+  small { color: var(--muted); }
+  p { margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+  a { color: inherit; }
+  .gh { position: absolute; top: 10px; right: 12px; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; color: var(--muted); }
+  .gh:hover, .gh:focus-visible { background: var(--tile); color: var(--fg); }
+  .gh svg { width: 16px; height: 16px; fill: currentColor; }
+</style>
+</head>
+<body>
+<h1>What Compass does on its own</h1>
+<label><input type="checkbox" id="swapNewTab"><span><b>Cmd+T opens the command bar</b><small>Off: Cmd+T opens the browser's new tab page as usual.</small></span></label>
+<label><input type="checkbox" id="shiftPeek"><span><b>Shift+click a link to peek it</b><small>Off: Shift+click opens a new window as usual. Right-click → Peek still works.</small></span></label>
+<label><input type="checkbox" id="edgeHover"><span><b>Left edge opens the sidebar</b><small>Off: only the shortcut opens it.</small></span></label>
+<label><input type="checkbox" id="autoArchive"><span><b>Close tabs untouched for 12 hours</b><small>They are saved first, so the command bar can still find them. Off: tabs stay open until you close them.</small></span></label>
+<h1>Privacy</h1>
+<label><input type="checkbox" id="previews"><span><b>Keep a picture of each tab</b><small>For the tab switcher and sidebar previews. Pictures stay in memory and go when the browser closes. Off: favicons instead, and any pictures taken are dropped.</small></span></label>
+<p>Keyboard shortcuts are set at <a href="chrome://extensions/shortcuts" id="keys">chrome://extensions/shortcuts</a>.</p>
+<a class="gh" href="https://github.com/justin22/compass" target="_blank" rel="noopener" aria-label="Compass on GitHub"><svg viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a>
+<script src="options.js"></script>
+</body>
+</html>
