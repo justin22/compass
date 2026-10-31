@@ -1,5 +1,6 @@
-import { listFavs, pinnedTree, linksIn } from './favs.js';
-import { staleTabs } from './archive.js';
+import { dueTabs, saveArchive } from './archive.js';
+
+chrome.storage.session.set({ workerStart: Date.now() }); // when this worker last (re)started; the sidebar's Activity shows it
 
 // resolves to whether anything opened
 async function openOverlay(windowId, view, hover = false) {
@@ -34,6 +35,7 @@ chrome.commands.onCommand.addListener((command, tab) => {
 
 chrome.runtime.onMessage.addListener((msg, sender) => {
   if (msg?.openBar) openOverlay(msg.openBar, 'bar'); // sidebar's "New Tab" button
+  if (msg?.goTab) chrome.tabs.update(msg.goTab, { active: true }).catch(() => {}); // clicked the new-tab toast; the tab may be gone already
   if (msg?.openSidebar && sender.tab?.active) { // content.js edge hover; skipped while the sidebar is docked
     const windowId = sender.tab.windowId;
     docked(windowId).then(d => { if (!d) openOverlay(windowId, 'sidebar', true); });
@@ -52,7 +54,55 @@ chrome.tabs.onCreated.addListener(async tab => {
   restoring = false;
 });
 
-// Copy URL (Cmd+Shift+C): copy in the page, silently. Injected, so it must be self-contained.
+// Background tab (Cmd+click a link): a toast on the page you stayed on, click it to go there. Injected, so self-contained.
+function toastInPage(tabId, site) {
+  document.getElementById('compass-toast')?.remove(); // one at a time: the newest wins
+  const host = document.createElement('div');
+  host.id = 'compass-toast';
+  host.popover = 'manual'; // top layer: above the page's own z-index wars, no modal
+  host.style.cssText = 'all: initial; position: fixed; inset: 12px auto auto 50%; translate: -50% 0; margin: 0;';
+  // contrast with what's actually behind the toast: first opaque background up from the element at that spot, else the system theme
+  // ponytail: rgb() backgrounds only; gradients, images and oklch() fall through to a parent or the system theme
+  let darkPage = matchMedia('(prefers-color-scheme: dark)').matches;
+  for (let el = document.elementFromPoint(innerWidth / 2, 24); el; el = el.parentElement) {
+    const [r, g, b, a = 1] = getComputedStyle(el).backgroundColor.match(/^rgba?\((.*)\)/)?.[1].split(/[\s,/]+/).map(Number) ?? [0, 0, 0, 0]; // not rgb(): look further up
+    if (a > .5) { darkPage = .299 * r + .587 * g + .114 * b < 128; break; }
+  }
+  const root = host.attachShadow({ mode: 'closed' });
+  root.innerHTML = `<style>
+    button {
+      font: 500 13px/1 system-ui, sans-serif; color: #f5f5f7; cursor: pointer;
+      padding: 10px 14px; border-radius: 12px; border: 1px solid rgb(255 255 255 / .12);
+      background: rgb(28 28 30 / .92); backdrop-filter: blur(28px) saturate(180%);
+      box-shadow: 0 12px 32px rgb(0 0 0 / .28);
+      animation: in 200ms cubic-bezier(0.32, 0.72, 0, 1); transition: scale 120ms ease-out;
+    }
+    button:hover { scale: 1.03; }
+    button:active { scale: .97; }
+    span { opacity: .6; }
+    b { font-weight: 600; margin-left: 8px; }
+    @keyframes in { from { opacity: 0; translate: 0 -8px; } }
+    .light { color: #1d1d1f; background: rgb(255 255 255 / .94); border-color: rgb(0 0 0 / .08); }
+    @media (prefers-reduced-motion: reduce) { button { animation: none; } }
+  </style><button class="${darkPage ? 'light' : ''}">New tab opened <span></span><b>Switch →</b></button>`;
+  root.querySelector('button').onclick = () => { host.remove(); chrome.runtime.sendMessage({ goTab: tabId }); };
+  host.role = 'status'; // read out by screen readers: a live region, so the text goes in after it's in the tree
+  document.documentElement.append(host);
+  host.showPopover();
+  root.querySelector('span').textContent = site ? `· ${site}` : ''; // textContent: the site name is page-controlled
+  // gone after 4s, but not while the mouse is on it: it's on its way to click
+  let timer = setTimeout(() => host.remove(), 4000);
+  host.onmouseenter = () => clearTimeout(timer);
+  host.onmouseleave = () => { timer = setTimeout(() => host.remove(), 1500); };
+}
+chrome.tabs.onCreated.addListener(tab => {
+  if (tab.active || tab.openerTabId == null) return; // only tabs opened behind the page you're on
+  const site = URL.parse(tab.pendingUrl || tab.url)?.hostname ?? '';
+  chrome.scripting.executeScript({ target: { tabId: tab.openerTabId }, func: toastInPage, args: [tab.id, site] })
+    .catch(() => {}); // browser pages block scripts: no toast there
+});
+
+// Copy URL (Cmd+Shift+L; Shift+C is Chrome's Inspect element): copy in the page, silently. Injected, so it must be self-contained.
 // ponytail: the fallback copies inside the page, so a page's own `copy` listener could swap the text; an offscreen document would avoid that
 function copyInPage(url) {
   const fallback = () => {
@@ -126,14 +176,11 @@ chrome.tabs.onRemoved.addListener(tabId => chrome.storage.session.remove(`shot${
 
 // Auto-archive: every 30 min, close tabs untouched for 12h, saving them first so the bar can find them.
 async function archiveStale() {
-  const keepUrls = [...await listFavs(), ...linksIn(await pinnedTree())].map(f => f.url);
-  const stale = staleTabs(await chrome.tabs.query({}), keepUrls, Date.now());
+  const stale = await dueTabs();
   if (!stale.length) return;
-  const entries = [...new Map(stale.map(t => [t.url, { url: t.url, title: t.title, archivedAt: Date.now() }])).values()]; // one entry per URL
-  const { archive = [] } = await chrome.storage.local.get('archive');
-  const urls = new Set(entries.map(e => e.url));
-  await chrome.storage.local.set({ archive: [...entries, ...archive.filter(a => !urls.has(a.url))].slice(0, 500) });
+  await saveArchive(stale);
   await Promise.allSettled(stale.map(t => chrome.tabs.remove(t.id))); // only after the archive is saved; one already-closed tab mustn't block the rest
+  chrome.storage.session.set({ lastArchive: { at: Date.now(), n: stale.length } }); // for Activity
 }
 // create once: re-creating on every worker wake-up would keep pushing the alarm back
 chrome.alarms.get('archive').then(a => a || chrome.alarms.create('archive', { periodInMinutes: 30 }));

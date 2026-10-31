@@ -1,6 +1,6 @@
 # Compass
 
-> **Heads up: no human has reviewed this code.** All of it was written by an AI model (an LLM). I use Compass every day as my own browser setup and try every change by hand before it ships. But I haven't read the code, and there are no plans to review it soon. Keep that in mind before you install it, especially since it asks for access to your tabs, history and bookmarks.
+> **Heads up: no human has reviewed this code.** All of it was written by an AI model (an LLM). I use Compass every day as my own browser setup and try every change by hand before it ships. But I haven't read the code, and there are no plans to review it soon. Several AI models do review each change for security, accessibility, memory use and good practice in the design and the logic, and their fixes go in before it ships. That still isn't a person reading it. Keep that in mind before you install it, especially since it asks for access to your tabs, history and bookmarks.
 >
 > **No data collection.** Compass has no server, no analytics and no tracking, and it never sends your data anywhere. Everything stays in your browser. Favorites and Pinned are ordinary bookmarks, so they sync only if you have turned on your browser's own sync.
 
@@ -8,18 +8,20 @@ A command bar and sidebar for Chrome and other Chromium browsers (Helium, Edge, 
 
 Chrome extension, no build step, no dependencies.
 
-[Highlights](#highlights) · [What it does](#what-it-does) · [Install](#install) · [Set up Helium](#set-up-helium) · [Files](#files) · [Test](#test) · [Contributing](#contributing) · [Things to know](#things-to-know)
+[Highlights](#highlights) · [What it does](#what-it-does) · [How it works](HOW-IT-WORKS.md) · [Install](#install) · [Browser settings](BROWSERS.md) · [Files](#files) · [Test](#test) · [Contributing](#contributing) · [Things to know](#things-to-know)
 
 ## Highlights
 
-- **[Command bar](#command-bar)**: `Cmd+T` searches open tabs, bookmarks, history and the web from one box. `Cmd+1` to `Cmd+9` opens a favorite, `Cmd+Shift+C` copies the page address.
+- **[Command bar](#command-bar)**: `Cmd+T` searches open tabs, bookmarks, history and the web from one box. `Cmd+1` to `Cmd+9` opens a favorite, `Cmd+Shift+L` copies the page address.
 - **[Sidebar](#sidebar)**: your tabs in a vertical list. `Cmd+Shift+S`, or rest your mouse on the left edge.
 - **[Tab switcher](#tab-switcher)**: `Cmd+Shift+K` shows your recent tabs as previews. Press again to step through, let go to switch.
 - **[Pinned](#pinned)**: tabs you keep, in folders, at the top of the sidebar. They sync as bookmarks.
 - **[Picture-in-picture](#picture-in-picture)**: `Cmd+Shift+P` pops the page's video into a floating window that stays on top.
 - **[Auto-archive](#auto-archive)**: tabs you haven't touched in 12 hours close themselves and stay searchable.
 
-![All the shortcuts: Cmd+T command bar, Cmd+Shift+S sidebar, Cmd+Shift+K tab switcher, Cmd+Shift+P picture-in-picture, Cmd+Shift+C copy URL](docs/store-assets/06-shortcuts.jpg)
+Shortcuts are written for Mac. On Windows and Linux, read `Cmd` as `Ctrl`. Change any of them at `chrome://extensions/shortcuts`.
+
+![All the shortcuts: Cmd+T command bar, Cmd+Shift+S sidebar, Cmd+Shift+K tab switcher, Cmd+Shift+P picture-in-picture, Cmd+Shift+L copy URL](docs/store-assets/06-shortcuts.jpg)
 
 ## What it does
 
@@ -29,7 +31,7 @@ Chrome extension, no build step, no dependencies.
 
 ### Command bar
 
-`Cmd+T`, or click the Compass icon in the toolbar. A search box that pops up over the page. Cmd+T closes the blank new tab and opens the bar over the page you were on instead, so you may see a brief flash. Type anything and it finds open tabs, bookmarks, history and archived tabs in one list. Type a web address and it opens it. Type anything else and it searches the web.
+`Cmd+T`, or click the Compass icon in the toolbar. A search box that pops up over the page. Cmd+T closes the blank new tab and opens the bar over the page you were on instead, so you may see a brief flash. It searches open tabs, bookmarks, history and archived tabs in one list. A web address opens, anything else searches the web.
 
 - Press Enter on an empty bar to jump back to the last tab you were on.
 - Type a site name like `yt` or `reddit`, press Tab, and search that site directly. About a dozen popular sites are built in.
@@ -41,8 +43,10 @@ Chrome extension, no build step, no dependencies.
 
 - An address field at the top shows the current site. Click it to edit, Enter to navigate.
 - A pin button keeps the sidebar open as a docked side panel. Click it again to close.
-- Double-click a tab to rename it. The name lasts until the tab or the browser closes, and shows only in the sidebar. In the floating sidebar a click switches tabs and closes it, so double-click works on the current tab; the docked panel renames any tab.
+- Double-click a tab to rename it. The name lasts until the tab or the browser closes, and shows only in the sidebar. In the floating sidebar a click switches tabs and closes it, so double-click only works on the current tab. The docked panel renames any tab.
 - Arrow keys move through tabs, Enter opens one, Escape closes the sidebar.
+- Hover the chart button at the bottom right for a status panel: tab counts, when auto-archive runs next and what it closed last, how much space the tab previews and the archive use, and which shortcuts are set. A button there clears the previews.
+- The trash button at the bottom left closes your other open tabs. Click it, then click again to confirm. Pinned items, tabs pinned in Chrome and the tab you're on stay. Closed tabs go to the archive, so the command bar can still find them.
 
 ### Tab switcher
 
@@ -60,15 +64,20 @@ Your top sites, shown as icons in both the bar and the sidebar. Press `+` to add
 
 ### Pinned
 
-Tabs you want to keep, at the top of the sidebar. Click the pin on a tab to pin it, or drag it up into Pinned. Click a pinned tab to open it, and click its pin again to unpin. Pinned tabs are stored as a "Pinned" bookmark folder, so they sync.
+Tabs you want to keep, at the top of the sidebar. Click the pin on a tab to pin it, or drag it up into Pinned. Click a pinned tab to open it. Its `⋯` menu has Rename and Unpin. Pinned tabs are stored as a "Pinned" bookmark folder, so they sync.
 
-- **New Folder** adds a folder. Double-click a pinned tab or folder to rename it.
+- The folder button at the bottom right adds a folder. Double-click a pinned tab or folder to rename it.
 - Drag to reorder, or drop onto a folder to put it inside.
+- A pinned tab stays pinned wherever you browse in it. Once you leave the pinned page, a back arrow appears. Click it to go back, or pick **Pin this page instead** from the `⋯` menu to keep the page you're on now.
 - `×` on a folder deletes it and everything in it.
+
+### New tab toast
+
+Open a link in a background tab (`Cmd+click`) and a small "New tab opened" note shows at the top of the page for a few seconds. Click it to go to that tab.
 
 ### Copy URL
 
-`Cmd+Shift+C` copies the current page address. No popup, no confirmation.
+`Cmd+Shift+L` copies the current page address. No popup, no confirmation. It was `Cmd+Shift+C` before, but Chrome keeps that for Inspect element. If you installed Compass before this change, the key may be unset. Set it at `chrome://extensions/shortcuts`, or from the sidebar's status panel.
 
 ### Picture-in-picture
 
@@ -82,17 +91,17 @@ Every 30 minutes, tabs you have not touched in 12 hours close on their own. They
 
 ## Install
 
-Compass is not on the Chrome Web Store. You load it straight from this repository, which works in Helium, Chrome, Edge and Brave.
+Compass is not on the Chrome Web Store. You load it from a folder on your computer. Works in Helium, Chrome, Edge and Brave.
 
 **Get the code**
 
-Either clone it:
+Click the green **Code** button at the top of this page, then **Download ZIP**. Unzip it somewhere you will keep it. The browser loads the extension from this folder every time it starts, so don't delete or move it afterwards.
+
+Or clone it:
 
 ```
 git clone https://github.com/justin22/compass.git
 ```
-
-Or on the [GitHub page](https://github.com/justin22/compass) click **Code**, then **Download ZIP**, and unzip it somewhere you will keep it. The browser loads the extension from this folder every time it starts, so don't delete or move it afterwards.
 
 **Load it in the browser**
 
@@ -101,23 +110,13 @@ Or on the [GitHub page](https://github.com/justin22/compass) click **Code**, the
 3. Click **Load unpacked** and pick the folder you just cloned or unzipped.
 4. Press `Cmd+Shift+S` on any web page. The sidebar should slide in.
 
-On Windows and Linux the shortcuts use `Ctrl+Shift` instead of `Cmd+Shift`. You can change them at `chrome://extensions/shortcuts`.
-
 **Update**
 
 Run `git pull` in the folder (or download the ZIP again and replace the folder's contents), then open `chrome://extensions` and click the reload icon on the Compass card. Pages that were already open need a refresh before the edge hover works on them again.
 
-## Set up Helium
+## Browser settings
 
-Compass replaces the browser's own tabs and toolbar, so it looks best when Helium gets out of the way. Open Helium's settings (`Cmd+,`), find **Layout**, and set:
-
-- **Vertical** layout
-- **Show vertical tabs on right side**: on. Compass's sidebar lives on the left edge, so Helium's tabs move to the right and the two don't overlap.
-- **Frameless mode**: on. Hides Helium's toolbar until you hover the window edge, so the page fills the window and Compass is all you see.
-
-Leave the rest off.
-
-![Helium layout settings: Vertical, tabs on the right, frameless mode on](docs/helium-layout.png)
+Compass looks best when the browser's own tabs and toolbar get out of the way. [Browser settings](BROWSERS.md) has the settings that work, one section per browser. Only Helium is written up so far.
 
 ## Files
 
@@ -131,8 +130,10 @@ Leave the rest off.
 | `sidebar.html` / `sidebar.js` | The sidebar |
 | `switch.html` / `switch.js` | The tab switcher |
 | `favs.js` | Favorites and Pinned, shared by the bar and the sidebar |
-| `archive.js` | Decides which tabs are stale enough to close |
+| `archive.js` | Decides which tabs are stale enough to close, and saves closed tabs to the archive |
 | `archive.test.mjs` | One check for the archive logic |
+| `HOW-IT-WORKS.md` | What each feature is underneath, in plain words |
+| `BROWSERS.md` | Settings that work well, one section per browser |
 
 ## Test
 
@@ -153,3 +154,7 @@ showing its impact.
 - The overlay cannot draw on browser pages like `chrome://settings` or the Web Store. The bar falls back to the toolbar popup there, and the sidebar opens as the native side panel. The browser decides which side that panel is on. In Chrome you can move it to the left at `chrome://settings/appearance` (**Side panel position**).
 - The 12 hour archive limit and the 150ms edge hover delay are fixed in code. Change them in `archive.js` and `content.js` if they feel wrong.
 - To add a search site, add a line to the `ENGINES` list in `bar.js`.
+
+## Credits
+
+Icons by [Lucide](https://lucide.dev).

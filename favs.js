@@ -54,8 +54,8 @@ export async function addPin(tab, parentId) {
   if (!tab?.url) return;
   const tree = await pinnedTree();
   const known = linksIn(tree).find(b => b.url === tab.url);
-  if (known) await chrome.bookmarks.move(known.id, { parentId: parentId ?? tree.id });
-  else await chrome.bookmarks.create({ parentId: parentId ?? tree.id, title: tab.title, url: tab.url });
+  if (known) return chrome.bookmarks.move(known.id, { parentId: parentId ?? tree.id });
+  return chrome.bookmarks.create({ parentId: parentId ?? tree.id, title: tab.title, url: tab.url });
 }
 
 export function favTile(fav, { title = fav.title, onOpen, onRemove }) {
