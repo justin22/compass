@@ -9,6 +9,9 @@ Press Cmd+Shift+S, or rest your mouse on the left edge of the window. Click to s
 SWITCHER
 Press Cmd+Shift+K to see your recent tabs as a grid of previews. Press again to step through them, let go to switch.
 
+PEEK
+Shift+click a link, or right-click it and choose Peek, to read it in a panel over the page you are on. Close it and you are right where you were. Shift+click inside the peek to follow a link there, and a back button takes you back.
+
 PINNED
 Keep the pages you return to at the top of the sidebar, in folders. Pinned pages and favorites are stored as ordinary bookmarks, so they sync with your bookmarks and you can edit them in the bookmark manager.
 
@@ -21,4 +24,4 @@ Cmd+Shift+P pops the page's video into a small floating window that stays on top
 PRIVACY
 Compass has no server, no analytics and no tracking. It reads your tabs, bookmarks and history only to show and search them, and nothing leaves your browser. Full policy: https://github.com/justin22/compass/blob/main/PRIVACY.md
 
-All shortcuts can be changed on the browser's extension shortcuts page. Compass is open source: https://github.com/justin22/compass
+All shortcuts can be changed on the browser's extension shortcuts page. Cmd+T, Shift+click, the left edge, auto-archive and tab previews can each be switched off in the extension's options. Compass is open source: https://github.com/justin22/compass
