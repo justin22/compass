@@ -17,7 +17,9 @@ Chrome extension, no build step, no dependencies.
 - **[Tab switcher](#tab-switcher)**: `Cmd+Shift+K` shows your recent tabs as previews. Press again to step through, let go to switch.
 - **[Pinned](#pinned)**: tabs you keep, in folders, at the top of the sidebar. They sync as bookmarks.
 - **[Picture-in-picture](#picture-in-picture)**: `Cmd+Shift+P` pops the page's video into a floating window that stays on top.
+- **[Peek](#peek)**: `Shift+click` a link to read it in a panel over the page, without leaving it.
 - **[Auto-archive](#auto-archive)**: tabs you haven't touched in 12 hours close themselves and stay searchable.
+- **[Settings](#settings)**: switch off `Cmd+T`, `Shift+click` or the left edge if you'd rather keep the browser's own.
 
 Shortcuts are written for Mac. On Windows and Linux, read `Cmd` as `Ctrl`. Change any of them at `chrome://extensions/shortcuts`.
 
@@ -45,6 +47,7 @@ Shortcuts are written for Mac. On Windows and Linux, read `Cmd` as `Ctrl`. Chang
 - A pin button keeps the sidebar open as a docked side panel. Click it again to close.
 - Double-click a tab to rename it. The name lasts until the tab or the browser closes, and shows only in the sidebar. In the floating sidebar a click switches tabs and closes it, so double-click only works on the current tab. The docked panel renames any tab.
 - Arrow keys move through tabs, Enter opens one, Escape closes the sidebar.
+- Rest the mouse on a tab in the floating sidebar and a preview of the page appears beside it, with its address underneath. Only tabs you have looked at since the browser started have one.
 - Hover the chart button at the bottom right for a status panel: tab counts, when auto-archive runs next and what it closed last, how much space the tab previews and the archive use, and which shortcuts are set. A button there clears the previews.
 - The trash button at the bottom left closes your other open tabs. Click it, then click again to confirm. Pinned items, tabs pinned in Chrome and the tab you're on stay. Closed tabs go to the archive, so the command bar can still find them.
 
@@ -85,9 +88,19 @@ Open a link in a background tab (`Cmd+click`) and a small "New tab opened" note 
 
 `Cmd+Shift+P` pops the video on the page out into a small floating window that stays on top. Press it again on the same page to put it back. If there are several videos, it picks the biggest one that is playing, or else the biggest. On Windows and Linux the default `Ctrl+Shift+P` may clash with the browser's print shortcut; change it at `chrome://extensions/shortcuts` if it doesn't fire. Works on sites that hide the video inside a custom player, like Reddit. Videos embedded from another site (like a YouTube video inside a blog post) aren't picked up yet.
 
+### Peek
+
+`Shift+click` a link, or right-click it and choose **Peek**. The page opens in a panel over the one you are on, so you never leave it. Close it with the × above the panel, a click outside it, or `Esc`. `Shift+click` a link inside a peek and the peek goes to that page; a ← button appears next to the × to take you back, or use the browser's back shortcut. Peeks don't stack: `Shift+click` on the page behind swaps the peek for the new link and starts over. Some sites show their signed-out page in a peek, and a few refuse to load at all; open those in a tab as usual.
+
+### Settings
+
+![The options dialog: switches for Cmd+T, Shift+click, the left edge, auto-archive and tab pictures](docs/store-assets/07-settings.jpg)
+
+Compass takes over three browser habits: `Cmd+T`, `Shift+click` on a link, and the mouse resting on the left edge. Each can be switched off, and so can auto-archive and the tab pictures behind the switcher and sidebar previews. Open them from the sidebar's status panel (the chart icon at the bottom), or right-click the Compass icon in the toolbar and choose **Options**. The choices follow your Chrome account to other computers.
+
 ### Auto-archive
 
-Every 30 minutes, tabs you have not touched in 12 hours close on their own. They are saved first, so the command bar can still find them. Pinned items, favorites, the active tab and anything playing audio are left alone.
+Every 30 minutes, tabs you have not touched in 12 hours close on their own. Switch it off in [Settings](#settings) if you'd rather keep them. They are saved first, so the command bar can still find them. Pinned items, favorites, the active tab and anything playing audio are left alone.
 
 ## Install
 

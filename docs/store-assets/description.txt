@@ -1,0 +1,24 @@
+Compass is a command bar and sidebar for your browser. One search box finds anything you have open, saved or visited. A sidebar lists your tabs down the side of the window. Tabs you have not touched in 12 hours close themselves and stay searchable.
+
+COMMAND BAR
+Press Cmd+T (Ctrl+T on Windows and Linux) to open a search box over the page you are on. It searches everything you have open, plus bookmarks, history and the archive, in one list. Type an address to go there, or anything else to search the web. Type a short site name, press Tab, and search that site directly. About a dozen popular sites are built in. Your favorites sit at the top, and Cmd+1 to Cmd+9 opens them.
+
+SIDEBAR
+Press Cmd+Shift+S, or rest your mouse on the left edge of the window. Click to switch, drag to reorder, middle-click to close. Double-click to rename. A pin button docks it as a side panel so it stays open.
+
+SWITCHER
+Press Cmd+Shift+K to see your recent tabs as a grid of previews. Press again to step through them, let go to switch.
+
+PINNED
+Keep the pages you return to at the top of the sidebar, in folders. Pinned pages and favorites are stored as ordinary bookmarks, so they sync with your bookmarks and you can edit them in the bookmark manager.
+
+AUTO-ARCHIVE
+Every 30 minutes, tabs you have not looked at in 12 hours close on their own. They are saved first, so the command bar can still find them. Pinned items, favorites, the current tab and anything playing audio are left alone.
+
+ALSO
+Cmd+Shift+P pops the page's video into a small floating window that stays on top. Cmd+Shift+L copies the page address. Cmd+click a link and a small note lets you jump to the new tab.
+
+PRIVACY
+Compass has no server, no analytics and no tracking. It reads your tabs, bookmarks and history only to show and search them, and nothing leaves your browser. Full policy: https://github.com/justin22/compass/blob/main/PRIVACY.md
+
+All shortcuts can be changed on the browser's extension shortcuts page. Compass is open source: https://github.com/justin22/compass
