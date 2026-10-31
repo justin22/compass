@@ -23,7 +23,7 @@ Chrome extension, no build step, no dependencies.
 
 Shortcuts are written for Mac. On Windows and Linux, read `Cmd` as `Ctrl`. Change any of them at `chrome://extensions/shortcuts`.
 
-![All the shortcuts: Cmd+T command bar, Cmd+Shift+S sidebar, Cmd+Shift+K tab switcher, Cmd+Shift+P picture-in-picture, Cmd+Shift+L copy URL](docs/store-assets/06-shortcuts.jpg)
+![All the shortcuts: Cmd+T command bar, Cmd+Shift+S sidebar, Cmd+Shift+K tab switcher, Shift+click peek, Cmd+Shift+P picture-in-picture, Cmd+Shift+L copy URL](docs/store-assets/06-shortcuts.jpg)
 
 ## What it does
 
@@ -89,6 +89,8 @@ Open a link in a background tab (`Cmd+click`) and a small "New tab opened" note 
 `Cmd+Shift+P` pops the video on the page out into a small floating window that stays on top. Press it again on the same page to put it back. If there are several videos, it picks the biggest one that is playing, or else the biggest. On Windows and Linux the default `Ctrl+Shift+P` may clash with the browser's print shortcut; change it at `chrome://extensions/shortcuts` if it doesn't fire. Works on sites that hide the video inside a custom player, like Reddit. Videos embedded from another site (like a YouTube video inside a blog post) aren't picked up yet.
 
 ### Peek
+
+![A Reddit post opened in a peek panel over the page, with a close button above its corner](docs/store-assets/08-peek.jpg)
 
 `Shift+click` a link, or right-click it and choose **Peek**. The page opens in a panel over the one you are on, so you never leave it. Close it with the × above the panel, a click outside it, or `Esc`. `Shift+click` a link inside a peek and the peek goes to that page; a ← button appears next to the × to take you back, or use the browser's back shortcut. Peeks don't stack: `Shift+click` on the page behind swaps the peek for the new link and starts over. Some sites show their signed-out page in a peek, and a few refuse to load at all; open those in a tab as usual.
 
