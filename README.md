@@ -23,7 +23,7 @@ Chrome extension, no build step, no dependencies.
 
 Shortcuts are written for Mac. On Windows and Linux, read `Cmd` as `Ctrl`. Change any of them at `chrome://extensions/shortcuts`.
 
-![All the shortcuts: Cmd+T command bar, Cmd+Shift+S sidebar, Cmd+Shift+K tab switcher, Cmd+Shift+P picture-in-picture, Cmd+Shift+L copy URL](docs/store-assets/06-shortcuts.jpg)
+![All the shortcuts: Cmd+T command bar, Cmd+Shift+S sidebar, Cmd+Shift+K tab switcher, Shift+click peek, Cmd+Shift+P picture-in-picture, Cmd+Shift+L copy URL](docs/store-assets/06-shortcuts.jpg)
 
 ## What it does
 
