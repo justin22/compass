@@ -41,7 +41,7 @@ export async function openTabFor(fav) {
   const tabs = await chrome.tabs.query({});
   const host = u => { try { return new URL(u).host; } catch { return null; } };
   const h = host(fav.url); // null for a malformed favorite: no host fallback then, or it would match any tab without a url
-  return tabs.find(t => isUnder(t.url, fav.url)) ?? (h ? tabs.find(t => host(t.url) === h) : undefined);
+  return tabs.find(t => isUnder(t.url || t.pendingUrl, fav.url)) ?? (h ? tabs.find(t => host(t.url || t.pendingUrl) === h) : undefined);
 }
 
 // Pinned: Arc-style saved tabs in a "Pinned" bookmarks folder. Its subfolders are the sidebar's folders;
@@ -97,7 +97,11 @@ export async function overlayKey() {
 
 // The frame paints separately from the page: wait for icons to decode and two frames to paint,
 // so the overlay reveals finished content instead of an empty panel that fills in a frame later.
+// ponytail: a slow favicon gives up after 300ms; the panel opens with what has decoded, the rest fills in
 export async function painted() {
-  await Promise.all([...document.images].map(img => img.decode().catch(() => {})));
+  await Promise.race([
+    Promise.all([...document.images].map(img => img.decode().catch(() => {}))),
+    new Promise(r => setTimeout(r, 300)),
+  ]);
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 }

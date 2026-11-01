@@ -1,16 +1,19 @@
-import { favicon, hasScheme, looksLikeUrl, listFavs, addFav, removeBookmark, openTabFor, favTile, addTile, painted, overlayKey } from './favs.js';
+import { favicon, hasScheme, looksLikeUrl, listFavs, addFav, removeBookmark, openTabFor, favTile, addTile, overlayKey } from './favs.js';
 
 const input = document.querySelector('input');
 const list = document.querySelector('ul');
 const bar = document.querySelector('.bar');
 const favsEl = document.querySelector('#favs');
 const embed = window.top !== window; // inside the page overlay vs. the toolbar popup
-const key = embed ? await overlayKey() : null;
+if (embed) new ResizeObserver(() => parent.postMessage({ arcBar: 'height', h: bar.offsetHeight }, '*')).observe(bar); // from the first layout: the panel is already on screen, so it grows into place
+const [key, [current]] = await Promise.all([
+  embed ? overlayKey() : null,
+  chrome.tabs.query({ active: true, currentWindow: true }), // the page under the bar
+]);
 const close = () => embed ? parent.postMessage({ arcBar: 'close' }, '*') : window.close();
 const pill = document.querySelector('#pill');
 const placeholder = input.placeholder;
 let items = [], sel = 0, seq = 0, favs = [], engine = null;
-const [current] = await chrome.tabs.query({ active: true, currentWindow: true }); // the page under the bar
 
 // Tab-to-search sites. %s is the query.
 // ponytail: hard-coded list; add a line per site you search often
@@ -34,7 +37,7 @@ for (const e of ENGINES) e.keys = [e.name, ...(e.alias ?? [])].map(k => k.toLowe
 
 if (embed) document.documentElement.classList.add('embed');
 
-const SEARCH_ICON = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>')}`;
+const SEARCH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
 
 async function search(q) {
   if (engine) return q ? [{ kind: 'Search', title: q, engine }] : [{ kind: 'Open', title: `Open ${engine.name}`, url: engineHome(engine) }];
@@ -75,16 +78,23 @@ function render() {
     const li = document.createElement('li');
     li.id = `r${i}`;
     li.role = 'option';
-    const img = document.createElement('img');
-    img.src = x.engine ? favicon(engineHome(x.engine)) : x.url ? favicon(x.url) : SEARCH_ICON; // the engine is the browser's default, which extensions can't read
-    img.alt = '';
+    let icon;
+    if (x.engine || x.url) { // the engine is the browser's default, which extensions can't read
+      icon = document.createElement('img');
+      icon.src = favicon(x.engine ? engineHome(x.engine) : x.url);
+      icon.alt = '';
+    } else {
+      icon = document.createElement('span');
+      icon.className = 'search-icon';
+      icon.innerHTML = SEARCH_ICON; // currentColor, so it follows the theme
+    }
     const t = document.createElement('span');
     t.className = 't';
     t.textContent = x.title;
     const k = document.createElement('span');
     k.className = 'k';
     k.textContent = x.label ?? x.kind;
-    li.append(img, t, k);
+    li.append(icon, t, k);
     li.onmousemove = () => { if (sel !== i) select(i); };
     li.onclick = () => go(x);
     return li;
@@ -185,9 +195,14 @@ document.addEventListener('keydown', e => { // on the document: works even if fo
 });
 
 window.addEventListener('focus', () => input.focus()); // overlay focuses the frame, hand it to the input
-window.addEventListener('message', e => { if (e.source === parent && e.data?.k === key && e.data.arcBar === 'focus') input.focus(); });
+window.addEventListener('message', e => {
+  if (e.source !== parent || e.data?.k !== key) return;
+  if (e.data.arcBar === 'focus') input.focus();
+  if (e.data.arcBar === 'show') { // a warm frame starts clean; favorites may have changed
+    setEngine(null);
+    renderFavs();
+    parent.postMessage({ arcBar: 'height', h: bar.offsetHeight }, '*'); // the panel was reset compact: give it its size before the next resize
+  }
+});
 input.focus();
 await Promise.all([update(), renderFavs()]);
-if (embed) await painted();
-// report size only once results are in, so the overlay opens at full height instead of growing
-if (embed) new ResizeObserver(() => parent.postMessage({ arcBar: 'height', h: bar.offsetHeight }, '*')).observe(bar);

@@ -10,12 +10,12 @@ if (top === window) {
   let timer = null, opened = false; // opened: once per edge visit
   const cancel = () => { clearTimeout(timer); timer = null; opened = false; };
   const open = () => { opened = true; try { chrome.runtime.sendMessage({ openSidebar: true }).catch(() => {}); } catch {} }; // throws once the extension is reloaded
-  const nearEdge = e => prefs.edgeHover && e.clientX <= 8 && !e.buttons && !document.getElementById('arc-bar-overlay');
+  const nearEdge = e => prefs.edgeHover && e.clientX <= 8 && !e.buttons && !document.querySelector('#arc-bar-overlay[data-visible="1"]'); // a warm hidden overlay doesn't block the edge
   document.addEventListener('mousemove', e => {
     if (!e.isTrusted) return; // a page can dispatch its own mouse events; only the real pointer opens the sidebar
     if (!nearEdge(e)) return cancel();
-    // ponytail: fixed 150ms dwell so passing by doesn't trigger; make it a setting if it feels off
-    timer ??= setTimeout(open, 150); // stays set until the mouse moves off the edge: one open per visit
+    // ponytail: fixed 40ms dwell so passing by doesn't trigger; under three frames, feels immediate
+    timer ??= setTimeout(open, 40); // stays set until the mouse moves off the edge: one open per visit
   });
   document.addEventListener('mouseout', e => {
     if (!e.isTrusted || e.relatedTarget) return; // moving between elements, still on the page

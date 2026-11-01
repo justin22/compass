@@ -33,7 +33,7 @@ Shortcuts are written for Mac. On Windows and Linux, read `Cmd` as `Ctrl`. Chang
 
 ### Command bar
 
-`Cmd+T`, or click the Compass icon in the toolbar. A search box that pops up over the page. Cmd+T closes the blank new tab and opens the bar over the page you were on instead, so you may see a brief flash. It searches open tabs, bookmarks, history and archived tabs in one list. A web address opens, anything else searches the web.
+`Cmd+T`, or click the Compass icon in the toolbar. A search box that pops up over the page. Cmd+T closes the blank new tab and opens the bar over the page you were on instead, so you may see a brief flash. It searches open tabs, bookmarks, history and archived tabs in one list. A web address opens, anything else searches the web. Close it and open it again in the same tab and it comes back instantly: Compass keeps the page ready for a few minutes.
 
 - Press Enter on an empty bar to jump back to the last tab you were on.
 - Type a site name like `yt` or `reddit`, press Tab, and search that site directly. About a dozen popular sites are built in.
@@ -47,7 +47,6 @@ Shortcuts are written for Mac. On Windows and Linux, read `Cmd` as `Ctrl`. Chang
 - A pin button keeps the sidebar open as a docked side panel. Click it again to close.
 - Double-click a tab to rename it. The name lasts until the tab or the browser closes, and shows only in the sidebar. In the floating sidebar a click switches tabs and closes it, so double-click only works on the current tab. The docked panel renames any tab.
 - Arrow keys move through tabs, Enter opens one, Escape closes the sidebar.
-- Rest the mouse on a tab in the floating sidebar and a preview of the page appears beside it, with its address underneath. Only tabs you have looked at since the browser started have one.
 - Hover the chart button at the bottom right for a status panel: tab counts, when auto-archive runs next and what it closed last, how much space the tab previews and the archive use, and which shortcuts are set. A button there clears the previews.
 - The trash button at the bottom left closes your other open tabs. Click it, then click again to confirm. Pinned items, tabs pinned in Chrome and the tab you're on stay. Closed tabs go to the archive, so the command bar can still find them.
 
@@ -98,7 +97,9 @@ Open a link in a background tab (`Cmd+click`) and a small "New tab opened" note 
 
 ![The options dialog: switches for Cmd+T, Shift+click, the left edge, auto-archive and tab pictures](docs/store-assets/07-settings.jpg)
 
-Compass takes over three browser habits: `Cmd+T`, `Shift+click` on a link, and the mouse resting on the left edge. Each can be switched off, and so can auto-archive and the tab pictures behind the switcher and sidebar previews. Open them from the sidebar's status panel (the chart icon at the bottom), or right-click the Compass icon in the toolbar and choose **Options**. The choices follow your Chrome account to other computers.
+Compass takes over three browser habits: `Cmd+T`, `Shift+click` on a link, and the mouse resting on the left edge. Each can be switched off, and so can auto-archive and the tab pictures behind the switcher. Open them from the sidebar's status panel (the chart icon at the bottom), or right-click the Compass icon in the toolbar and choose **Options**. The choices follow your Chrome account to other computers.
+
+The same page has a **Theme** choice. **Auto** follows your system's light or dark setting and changes with it. Choose **Light** or **Dark** when your browser's own theme is different from the system, which Chromium does not report to extensions.
 
 ### Auto-archive
 
@@ -144,6 +145,7 @@ Compass looks best when the browser's own tabs and toolbar get out of the way. [
 | `bar.html` / `bar.js` | The command bar |
 | `sidebar.html` / `sidebar.js` | The sidebar |
 | `switch.html` / `switch.js` | The tab switcher |
+| `theme.js` | Light/dark theme for every Compass page |
 | `favs.js` | Favorites and Pinned, shared by the bar and the sidebar |
 | `archive.js` | Decides which tabs are stale enough to close, and saves closed tabs to the archive |
 | `archive.test.mjs` | One check for the archive logic |
@@ -167,7 +169,7 @@ showing its impact.
 ## Things to know
 
 - The overlay cannot draw on browser pages like `chrome://settings` or the Web Store. The bar falls back to the toolbar popup there, and the sidebar opens as the native side panel. The browser decides which side that panel is on. In Chrome you can move it to the left at `chrome://settings/appearance` (**Side panel position**).
-- The 12 hour archive limit and the 150ms edge hover delay are fixed in code. Change them in `archive.js` and `content.js` if they feel wrong.
+- The 12 hour archive limit and the 40ms edge hover delay are fixed in code. Change them in `archive.js` and `content.js` if they feel wrong.
 - To add a search site, add a line to the `ENGINES` list in `bar.js`.
 
 ## Credits
