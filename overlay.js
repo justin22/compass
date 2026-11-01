@@ -33,7 +33,6 @@
           position: fixed; top: 18vh; left: 50%; translate: -50% 0;
           width: min(640px, calc(100vw - 32px)); height: 64px; overflow: hidden;
           border-radius: 16px; border: 1px solid rgb(255 255 255 / .45);
-          background: rgb(255 255 255 / .62);
           backdrop-filter: blur(28px) saturate(180%);
           box-shadow: 0 24px 60px rgb(0 0 0 / .22), inset 0 1px 0 rgb(255 255 255 / .5);
           opacity: 0; /* revealed once sized; no open animation: it's opened from the keyboard */
@@ -42,7 +41,6 @@
         .scrim.sidebar { background: rgb(0 0 0 / .06); backdrop-filter: none; }
         .panel.sidebar {
           top: 8px; bottom: 8px; left: 8px; width: 280px; height: auto; border-radius: 14px; translate: none;
-          background: rgb(255 255 255 / .9); /* muted text keeps 4.5:1 even over a black page */
         }
         /* slide only after the mouse gesture (edge hover), never on the shortcut */
         .panel.sidebar.slide { translate: -12px 0; transition: opacity 200ms cubic-bezier(0.32, 0.72, 0, 1), translate 200ms cubic-bezier(0.32, 0.72, 0, 1); }
@@ -66,7 +64,7 @@
         .pk:active:not(:disabled) { scale: .94; }
         .pk:focus-visible { outline: 2px solid rgb(0 122 255); outline-offset: 2px; }
         .pk svg { width: 14px; height: 14px; }
-        iframe { display: block; width: 100%; height: 100%; border: 0; background: transparent; color-scheme: normal; }
+        iframe { display: block; width: 100%; height: 100%; border: 0; background: transparent; color-scheme: light dark; } /* the frame's prefers-color-scheme follows this, not the system; frame pages declare the same, or Chrome paints the frame opaque */
         /* sidebar tab preview: a glass card like the panel, to its right, level with the row. Fades and grows in from the panel's edge; leaves faster than it came */
         .shot {
           position: fixed; top: 0; width: 320px; padding: 6px; box-sizing: border-box; pointer-events: none;
@@ -80,10 +78,9 @@
         .shot img { display: block; width: 100%; border-radius: 9px; outline: 1px solid rgb(0 0 0 / .08); outline-offset: -1px; } /* a hairline keeps a white page from merging with the card */
         .shot span { display: block; padding: 7px 4px 2px; font: 12px/1.3 system-ui, sans-serif; color: rgb(0 0 0 / .55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         @media (prefers-color-scheme: dark) {
-          .panel:not(.peek) { background: rgb(28 28 30 / .58); border-color: rgb(255 255 255 / .12); box-shadow: 0 24px 60px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 255 255 / .08); }
-          .panel.sidebar { background: rgb(28 28 30 / .92); } /* muted text keeps 4.5:1 even over a white page */
+          .panel:not(.peek) { border-color: rgb(255 255 255 / .12); box-shadow: 0 24px 60px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 255 255 / .08); }
           .pk { background: rgb(28 28 30 / .62); border-color: rgb(255 255 255 / .12); color: rgb(255 255 255 / .85); box-shadow: 0 8px 24px rgb(0 0 0 / .45), inset 0 1px 0 rgb(255 255 255 / .08); } .pk:hover:not(:disabled) { background: rgb(28 28 30 / .9); }
-          .shot { background: rgb(28 28 30 / .72); border-color: rgb(255 255 255 / .12); box-shadow: 0 16px 48px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 255 255 / .08); } .shot img { outline-color: rgb(255 255 255 / .1); } .shot span { color: rgb(255 255 255 / .6); }
+          .shot { background: rgb(28 28 30 / .72); border-color: rgb(255 255 255 / .12); box-shadow: 0 16px 48px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 255 255 / .08); } .shot img { outline-color: rgb(255 255 255 / .1); } .shot span { color: rgb(255 255 255 / .75); }
         }
         @media (prefers-reduced-motion: reduce) { .pk:active, .pk.back:disabled { scale: 1; } .panel.sidebar.slide { translate: 0 0; transition-property: opacity; } .shot, .shot.in { scale: 1; transition-property: opacity, visibility; } } /* keep the fade, drop the movement */
       </style>

@@ -5,11 +5,13 @@
 <title>Tabs</title>
 <link rel="stylesheet" href="favs.css">
 <style>
-  :root { --bg: #ececef; --fg: #1c1c1e; --muted: #65656a; /* 4.9:1 on --bg: 12px text needs 4.5 */ --hover: rgb(0 0 0 / .05); --active: #fff; --tile: rgb(0 0 0 / .05); --tile-hover: rgb(0 0 0 / .09); --shadow: 0 1px 2px rgb(0 0 0 / .1); --danger: #d70015; /* 4.6:1 on --bg; the brighter iOS red is 3:1 */ }
-  @media (prefers-color-scheme: dark) { :root { --bg: #1e1e20; --fg: #f2f2f7; --muted: #98989d; --hover: rgb(255 255 255 / .05); --active: rgb(255 255 255 / .1); --tile: rgb(255 255 255 / .06); --tile-hover: rgb(255 255 255 / .11); --shadow: none; --danger: #ff453a; } }
+  :root { --bg: #ececef; --fg: #1c1c1e; --muted: #65656a; /* 4.9:1 on --bg: 12px text needs 4.5 */ --hover: rgb(0 0 0 / .05); --active: #fff; --tile: rgb(0 0 0 / .05); --tile-hover: rgb(0 0 0 / .09); --shadow: 0 1px 2px rgb(0 0 0 / .1); --danger: #d70015; /* 4.6:1 on --bg; the brighter iOS red is 3:1 */ --glass: rgb(255 255 255 / .9); /* muted text keeps 4.5:1 even over a black page */ }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1e1e20; --fg: #f2f2f7; --muted: #98989d; --hover: rgb(255 255 255 / .05); --active: rgb(255 255 255 / .1); --tile: rgb(255 255 255 / .06); --tile-hover: rgb(255 255 255 / .11); --shadow: none; --danger: #ff6961; /* the iOS red is 4:1 on the floating glass */ --glass: rgb(28 28 30 / .92); } }
+  :root { color-scheme: light dark; } /* same as the overlay's iframe: a mismatch makes Chrome paint the frame opaque white */
   * { box-sizing: border-box; }
   body { margin: 0; padding: 10px 8px 48px; /* bottom: room so the last tab isn't hidden under the footer */ background: var(--bg); color: var(--fg); font: 13px/1.3 system-ui, sans-serif; user-select: none; }
-  .embed body { background: transparent; } /* the overlay's glass panel shows through */
+  .embed { background: var(--glass); } /* glass tint lives in the frame, not the overlay: frame and page can disagree on dark mode, and the tint must match the text */
+  .embed body { background: transparent; }
   img { width: 16px; height: 16px; flex: none; }
 
   #address { display: flex; align-items: center; gap: 7px; height: 34px; margin-bottom: 10px; padding: 0 5px 0 10px; border-radius: 10px; background: var(--tile); }
@@ -87,7 +89,7 @@
     .list li:hover .x, .list li:focus-within .x { visibility: visible; } /* hidden also drops them from the tab order: show while tabbing through */
   }
   .list button.t { border: 0; padding: 0; background: none; color: inherit; font: inherit; text-align: left; outline: 0; } /* the row is the focus indicator */
-  .list li:has(.t:focus-visible) { background: var(--hover); }
+  .list li:has(.t:focus-visible) { background: var(--hover); box-shadow: inset 0 0 0 1.5px var(--muted); } /* the tint alone is 1.2:1; the ring is 3:1+ */
   .list .pin-btn { display: grid; place-items: center; }
   .list .pin-btn svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   #menu, #activity { position: fixed; inset: auto; margin: 0; padding: 4px; border: 1px solid rgb(128 128 128 / .2); border-radius: 10px; background: var(--bg); color: var(--fg); box-shadow: 0 8px 24px rgb(0 0 0 / .16);

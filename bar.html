@@ -5,11 +5,13 @@
 <title>New Tab</title>
 <link rel="stylesheet" href="favs.css">
 <style>
-  :root { --bg: #fff; --fg: #1c1c1e; --muted: #6e6e73; --sel: rgb(0 0 0 / .06); --line: rgb(0 0 0 / .08); --tile: rgb(0 0 0 / .05); --tile-hover: rgb(0 0 0 / .1); }
-  @media (prefers-color-scheme: dark) { :root { --bg: #1c1c1e; --fg: #f2f2f7; --muted: #98989d; --sel: rgb(255 255 255 / .09); --line: rgb(255 255 255 / .1); --tile: rgb(255 255 255 / .07); --tile-hover: rgb(255 255 255 / .13); } }
+  :root { --bg: #fff; --fg: #1c1c1e; --muted: #6e6e73; --sel: rgb(0 0 0 / .06); --line: rgb(0 0 0 / .08); --tile: rgb(0 0 0 / .05); --tile-hover: rgb(0 0 0 / .1); --glass: rgb(255 255 255 / .62); }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1c1c1e; --fg: #f2f2f7; --muted: #98989d; --sel: rgb(255 255 255 / .09); --line: rgb(255 255 255 / .1); --tile: rgb(255 255 255 / .07); --tile-hover: rgb(255 255 255 / .13); --glass: rgb(28 28 30 / .92); } } /* .92: muted text keeps 4.5:1 even over a white page */
   * { box-sizing: border-box; }
+  :root { color-scheme: light dark; } /* same as the overlay's iframe: a mismatch makes Chrome paint the frame opaque white */
   body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.4 system-ui, sans-serif; }
-  .embed body { background: transparent; } /* the overlay's glass panel shows through */
+  .embed { background: var(--glass); } /* glass tint lives in the frame, not the overlay: frame and page can disagree on dark mode, and the tint must match the text */
+  .embed body { background: transparent; }
   .bar { width: 640px; max-width: 100%; margin: 0 auto; }
   #favs { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; padding: 12px 12px 0; }
   .tile { height: 44px; font-size: 18px; } /* the rest is favs.css */
