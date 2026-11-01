@@ -1,0 +1,3 @@
+# keep "Download ZIP" to the extension: screenshots stay on GitHub
+docs/ export-ignore
+.github/ export-ignore
