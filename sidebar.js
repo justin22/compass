@@ -1,13 +1,18 @@
 import { saveArchive, dueTabs } from './archive.js';
-import { favicon, hasScheme, looksLikeUrl, listFavs, addFav, removeBookmark, openTabFor, isUnder, pinnedTree, linksIn, addPin, favTile, addTile, painted, overlayKey } from './favs.js';
+import { favicon, hasScheme, looksLikeUrl, listFavs, addFav, removeBookmark, openTabFor, isUnder, pinnedTree, linksIn, addPin, favTile, addTile, overlayKey } from './favs.js';
 
 const favsEl = document.querySelector('#favs');
 const tabsEl = document.querySelector('#tabs');
 const pinnedEl = document.querySelector('#pinned');
-const { id: windowId } = await chrome.windows.getCurrent(); // the side panel is per window
-const PIN = document.querySelector('#dock svg').outerHTML; // same pin icon as the dock button
 const embed = window.top !== window; // floating over the page vs. the native side panel
-if (embed) await overlayKey();
+if (embed) document.documentElement.classList.add('embed'); // before the first paint: transparent, not the solid panel colour
+// the window, the frame key and the collapsed folders are independent: fetch them together instead of one round trip after another
+const [{ id: windowId }, frameKey, { closedFolders: closed = [] }] = await Promise.all([
+  chrome.windows.getCurrent(), // the side panel is per window
+  embed ? overlayKey() : null,
+  chrome.storage.local.get('closedFolders'),
+]);
+const PIN = document.querySelector('#dock svg').outerHTML; // same pin icon as the dock button
 const close = () => parent.postMessage({ arcBar: 'close' }, '*');
 const clearBtn = document.querySelector('#clear'); // here, not with Clear below: render() touches it
 let drag = null; // the reorder in progress
@@ -19,7 +24,7 @@ let renaming = null; // the Pinned row (bookmark id) or tab (tab id) to show as 
 let names = {}; // tab names given here, by tab id; session storage, so gone when the browser closes
 // ponytail: never pruned; tab ids aren't reused within a session so it only grows by renames. Drop keys on tabs.onRemoved if that matters
 let bound = {}; // pinned item (bookmark id) -> the tab it opened or was pinned from; it stays that pin's tab wherever it browses (session storage; render() prunes it)
-const closedFolders = new Set((await chrome.storage.local.get('closedFolders')).closedFolders); // collapsed Pinned folders
+const closedFolders = new Set(closed); // collapsed Pinned folders
 
 function setCursor(id, focus = false) {
   cursorId = id;
@@ -27,8 +32,6 @@ function setCursor(id, focus = false) {
   if (focus) tabsEl.querySelector('.cursor .t')?.focus(); // keys only (focus scrolls it into view): a re-render (pin, new folder) keeps your scroll spot
 }
 tabsEl.onfocusin = e => { const id = e.target.closest('li')?.dataset.id; if (id) setCursor(+id); }; // tabbing onto a row moves the cursor too
-
-if (embed) document.documentElement.classList.add('embed');
 
 const activate = t => {
   if (embed && !(t.active && t.windowId === windowId)) close(); // pick a tab and get out of the way; the current tab stays open so a double-click can rename it
@@ -79,25 +82,6 @@ addEventListener('pointerout', e => {
   coolTimer = setTimeout(() => document.documentElement.classList.remove('tips-warm'), 400); // time to reach the next one
 });
 
-// floating only: resting on a tab's row for 300ms shows its preview (the switcher's shot) beside the panel; the overlay draws it, there's no room inside.
-// Like the tooltips: once one is showing, the next row's swaps in at once; a short pause off the rows resets that
-let previewWarm = false, previewHide;
-const hidePreview = () => { clearTimeout(previewHide); previewWarm = false; parent.postMessage({ arcBar: 'preview' }, '*'); };
-function preview(li, tabId) {
-  if (!embed) return;
-  let timer;
-  li.addEventListener('mouseenter', () => {
-    clearTimeout(previewHide);
-    timer = setTimeout(() => {
-      // only the tab id crosses to the page: the overlay fetches the shot and URL through the worker, since the page can listen to these messages too
-      previewWarm = true;
-      parent.postMessage({ arcBar: 'preview', id: tabId, y: li.getBoundingClientRect().top }, '*');
-    }, previewWarm ? 0 : 300);
-  });
-  li.addEventListener('mouseleave', () => { clearTimeout(timer); previewHide = setTimeout(hidePreview, 150); }); // time to reach the next row
-  li.addEventListener('pointerdown', hidePreview);
-}
-
 function closeButton(t) {
   const x = document.createElement('button');
   x.className = 'x';
@@ -134,7 +118,7 @@ const openTabIn = (tabs, b) => tabs.find(t => t.id === bound[b.id])
   ?? tabs.find(t => isUnder(t.url || t.pendingUrl, b.url) && !Object.values(bound).includes(t.id));
 const sameUrl = (a, b) => a.replace(/\/$/, '') === b.replace(/\/$/, '');
 async function openPin(b) {
-  await bind({ [b.id]: (await chrome.tabs.create({ url: b.url, windowId })).id }); // before close(): the overlay tears this frame down at once
+  await bind({ [b.id]: (await chrome.tabs.create({ url: b.url, windowId })).id }); // before close(): the overlay stops listening at once and the tab switches
   if (embed) close();
 }
 const BACK = '<svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>';
@@ -217,6 +201,7 @@ function pinnedRows(node, tabOf, depth = 0) { // tabOf: bookmark id -> its open 
       del.className = 'x';
       del.textContent = '×';
       tip(del, 'Delete folder and everything in it');
+      const resetDelete = () => { del.classList.remove('confirm'); del.textContent = '×'; del.ariaLabel = del.dataset.tip; };
       del.onclick = e => {
         e.stopPropagation();
         // no undo for bookmarks: a folder with things in it asks once more, right on the button
@@ -227,7 +212,8 @@ function pinnedRows(node, tabOf, depth = 0) { // tabOf: bookmark id -> its open 
         }
         chrome.bookmarks.removeTree(b.id);
       };
-      li.onmouseleave = () => { del.classList.remove('confirm'); del.textContent = '×'; del.ariaLabel = del.dataset.tip; }; // walking away cancels
+      li.onmouseleave = resetDelete; // walking away cancels
+      del.onblur = resetDelete; // and so does tabbing away
       li.append(name, del);
       li.onclick = () => {
         if (suppressClick) return;
@@ -255,7 +241,7 @@ function pinnedRows(node, tabOf, depth = 0) { // tabOf: bookmark id -> its open 
       ['Rename', () => { renaming = b.id; schedule(); }],
       ['Unpin', () => removeBookmark(b)],
     ]));
-    if (tab) { li.append(closeButton(tab)); preview(li, tab.id); } // × closes the tab, keeps the pin
+    if (tab) { li.append(closeButton(tab)); } // × closes the tab, keeps the pin
     li.onclick = () => { if (!suppressClick) tab ? activate(tab) : openPin(b); };
     return [li];
   });
@@ -303,7 +289,6 @@ function tabItem(t) {
     li.classList.add('marquee');
   };
   li.onmouseleave = () => { li.classList.remove('marquee'); text.style.translate = ''; };
-  preview(li, t.id);
   li.onclick = () => { if (!suppressClick) activate(t); };
   li.onauxclick = e => { if (e.button === 1) chrome.tabs.remove(t.id); }; // middle-click closes
   li.ondblclick = () => { renaming = t.id; schedule(); }; // the first click switched to it already; floating, that only works on the current tab
@@ -470,9 +455,13 @@ const schedule = () => {
     render();
   }, 16);
 };
-for (const ev of ['onCreated', 'onRemoved', 'onUpdated', 'onActivated', 'onMoved', 'onAttached', 'onDetached', 'onReplaced']) {
+for (const ev of ['onCreated', 'onRemoved', 'onActivated', 'onMoved', 'onAttached', 'onDetached', 'onReplaced']) {
   chrome.tabs[ev].addListener(schedule);
 }
+// onUpdated fires for audio, muted, discarded and more the list doesn't draw: only rebuild for what it shows
+chrome.tabs.onUpdated.addListener((tabId, info) => {
+  if (info.title !== undefined || info.url !== undefined || info.favIconUrl !== undefined || info.pinned !== undefined) schedule();
+});
 
 // background asks before drawing a floating sidebar: a docked panel for this window says so
 if (!embed) chrome.runtime.onMessage.addListener((msg, _, reply) => { if (msg?.dockedIn === windowId) reply(true); });
@@ -594,7 +583,7 @@ async function renderActivity() {
 const actBtn = document.querySelector('#activity-btn');
 let actTimer;
 const openAct = () => renderActivity().then(() => { if (!act.matches(':popover-open')) act.showPopover(); }); // filled first: no empty flash
-const leaveAct = () => { clearTimeout(actTimer); actTimer = setTimeout(() => act.matches(':popover-open') && act.hidePopover(), 250); }; // grace to cross the gap into it
+const leaveAct = () => { clearTimeout(actTimer); actTimer = setTimeout(() => { if (act.matches(':popover-open') && !act.contains(document.activeElement)) act.hidePopover(); }, 250); }; // grace to cross the gap in; keyboard focus keeps it open
 actBtn.onmouseenter = () => { clearTimeout(actTimer); actTimer = setTimeout(openAct, 300); };
 actBtn.onmouseleave = act.onmouseleave = leaveAct;
 act.onmouseenter = () => clearTimeout(actTimer);
@@ -613,7 +602,12 @@ addEventListener('keydown', e => {
   }
 });
 await Promise.all([render(), renderFavs()]);
-if (embed) {
-  await painted();
-  parent.postMessage({ arcBar: 'height' }, '*'); // tells the overlay it's ready to reveal
-}
+// the overlay keeps a closed sidebar warm: reset transient state and refresh what changed while it was hidden
+if (embed) addEventListener('message', e => {
+  if (e.source !== parent || e.data?.k !== frameKey || e.data.arcBar !== 'show') return;
+  drag = null; renaming = null; suppressClick = false; cursorId = null;
+  urlEl.blur();
+  document.querySelectorAll(':popover-open').forEach(p => p.hidePopover());
+  render(); renderFavs();
+});
+// the overlay shows the panel the moment it injects: no size message to wait for, the sidebar is always full height

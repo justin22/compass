@@ -2,15 +2,37 @@ import { dueTabs, saveArchive } from './archive.js';
 
 chrome.storage.session.set({ workerStart: Date.now() }); // when this worker last (re)started; the sidebar's Activity shows it
 
+// Read the settings and the frame key once per worker start, then keep them. A shortcut shouldn't queue storage reads in front of drawing.
+let theme = 'auto', swapNewTab = true, frameKey, settingsLoaded = false;
+const validTheme = t => t === 'light' || t === 'dark' ? t : 'auto';
+const settings = chrome.storage.sync.get({ theme: 'auto', swapNewTab: true }).then((s) => {
+  if (!settingsLoaded) { theme = validTheme(s.theme); swapNewTab = s.swapNewTab !== false; }
+  settingsLoaded = true;
+}, () => {}); // storage trouble falls back to the defaults above
+const overlayKey = () => frameKey ??= chrome.storage.session.get('key').then(async ({ key }) => {
+  if (key) return key;
+  const made = crypto.randomUUID();
+  await chrome.storage.session.set({ key: made });
+  return made;
+}).catch(e => { frameKey = null; throw e; }); // don't cache the failure: the next open tries the store again
+chrome.storage.onChanged.addListener((c, area) => {
+  if (area !== 'sync') return;
+  settingsLoaded = true; // a live change wins over an initial read still in flight
+  if (c.theme) theme = validTheme(c.theme.newValue);
+  if (c.swapNewTab) swapNewTab = c.swapNewTab.newValue !== false;
+});
+
 // resolves to whether anything opened
-async function openOverlay(windowId, view, hover = false, peek = null) {
+async function openOverlay(windowId, view, hover = false, peek = null, tab = null) {
   try {
-    const [tab] = await chrome.tabs.query({ active: true, windowId });
-    // the frame URL carries a secret the frame checks: any site can iframe our pages (web_accessible_resources), only ours get this key
-    const { key = crypto.randomUUID() } = await chrome.storage.session.get('key');
-    await chrome.storage.session.set({ key });
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: (v, h, k, p) => { globalThis.arcBarView = v; globalThis.arcBarHover = h; globalThis.arcBarKey = k; globalThis.arcBarPeek = p; }, args: [view, hover, key, peek] });
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['overlay.js'] });
+    // the caller usually has the active tab already (command, message, menu): skip a round trip to ask for it
+    const [[current], key] = await Promise.all([
+      tab?.active && tab.id ? Promise.resolve([tab]) : chrome.tabs.query({ active: true, windowId }),
+      overlayKey(),
+      settings,
+    ]);
+    await chrome.scripting.executeScript({ target: { tabId: current.id }, func: (v, h, k, p, t) => { globalThis.arcBarView = v; globalThis.arcBarHover = h; globalThis.arcBarKey = k; globalThis.arcBarPeek = p; globalThis.arcBarTheme = t; }, args: [view, hover, key, peek, theme] });
+    await chrome.scripting.executeScript({ target: { tabId: current.id }, files: ['overlay.js'] });
     return true;
   } catch (e) {
     // chrome:// pages and the Web Store block scripts: fall back to the toolbar popup
@@ -25,13 +47,13 @@ const docked = windowId => chrome.runtime.sendMessage({ dockedIn: windowId }).th
 
 chrome.commands.onCommand.addListener((command, tab) => {
   const windowId = tab?.windowId ?? chrome.windows.WINDOW_ID_CURRENT;
-  if (command === 'open-bar') openOverlay(windowId, 'bar');
+  if (command === 'open-bar') openOverlay(windowId, 'bar', false, null, tab);
   if (command === 'copy-url') copyUrl(tab);
   if (command === 'pip') pip(tab);
-  if (command === 'switch-tab') openOverlay(windowId, 'switch');
+  if (command === 'switch-tab') openOverlay(windowId, 'switch', false, null, tab);
   if (command === 'open-sidebar') {
     // can't draw on browser pages: use the native side panel there (must stay synchronous to keep the keypress gesture)
-    if (/^https?:/.test(tab?.url ?? '')) docked(windowId).then(d => { if (!d) openOverlay(windowId, 'sidebar'); });
+    if (/^https?:/.test(tab?.url ?? '')) docked(windowId).then(d => { if (!d) openOverlay(windowId, 'sidebar', false, null, tab); });
     else chrome.sidePanel.open({ windowId }).catch(e => console.warn('Compass: could not open the side panel', e));
   }
 });
@@ -55,12 +77,12 @@ async function allowFrames(url) { // add the host (and its subdomains) to the pe
     action: { type: 'modifyHeaders', responseHeaders: [{ header: 'x-frame-options', operation: 'remove' }, { header: 'content-security-policy', operation: 'remove' }] },
   }] });
 }
-async function peek(windowId, url) {
+async function peek(windowId, url, tab = null) {
   if (!/^https?:/.test(url)) return;
   await allowFrames(url);
   const peekKey = crypto.randomUUID(); // names the peek's frame; content.js inside quotes it, since a page can name its own frames the same way
   await chrome.storage.session.set({ peekKey });
-  if (!await openOverlay(windowId, 'peek', false, { url, key: peekKey })) unpeek();
+  if (!await openOverlay(windowId, 'peek', false, { url, key: peekKey }, tab)) unpeek();
 }
 async function peekGo({ peekGo: url, k }) { // shift+click inside the peek frame: un-block the new host, then the frame navigates itself (so Back works)
   const { peekKey } = await chrome.storage.session.get('peekKey');
@@ -68,17 +90,12 @@ async function peekGo({ peekGo: url, k }) { // shift+click inside the peek frame
   await allowFrames(url);
   return true;
 }
-chrome.contextMenus.onClicked.addListener((info, tab) => { if (info.menuItemId === 'peek') peek(tab.windowId, info.linkUrl); });
+chrome.contextMenus.onClicked.addListener((info, tab) => { if (info.menuItemId === 'peek') peek(tab.windowId, info.linkUrl, tab); });
 
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
-  if (msg?.openBar) openOverlay(msg.openBar, 'bar'); // sidebar's "New Tab" button
-  if (msg?.shot) { // the overlay's hover preview: a tab's shot and URL, kept off the page's postMessage channel
-    Promise.all([chrome.storage.session.get(`shot${msg.shot}`), chrome.tabs.get(msg.shot)])
-      .then(([s, t]) => reply({ src: s[`shot${msg.shot}`], url: t.url }), () => reply(null));
-    return true; // replying async
-  }
+  if (msg?.openBar) openOverlay(msg.openBar, 'bar', false, null, sender.tab); // sidebar's "New tab" button
   if (msg?.peekClosed) unpeek();
-  if (msg?.peek && sender.tab?.active) peek(sender.tab.windowId, msg.peek); // content.js shift+click
+  if (msg?.peek && sender.tab?.active) peek(sender.tab.windowId, msg.peek, sender.tab); // content.js shift+click
   if (msg?.peekGo && sender.frameId) { peekGo(msg).then(reply, () => reply(false)); return true; } // replying async
   if (msg?.peekDo && sender.frameId) { // from inside the peek frame (a page load, Esc), for the overlay in the top frame; the key check keeps other frames out
     chrome.storage.session.get('peekKey').then(({ peekKey }) => { if (peekKey && msg.k === peekKey) return chrome.tabs.sendMessage(sender.tab.id, { peekDo: msg.peekDo, url: msg.url }, { frameId: 0 }); }).catch(() => {});
@@ -86,7 +103,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (msg?.goTab) chrome.tabs.update(msg.goTab, { active: true }).catch(() => {}); // clicked the new-tab toast; the tab may be gone already
   if (msg?.openSidebar && sender.tab?.active) { // content.js edge hover; skipped while the sidebar is docked
     const windowId = sender.tab.windowId;
-    docked(windowId).then(d => { if (!d) openOverlay(windowId, 'sidebar', true); });
+    docked(windowId).then(d => { if (!d) openOverlay(windowId, 'sidebar', true, null, sender.tab); });
   }
 });
 
@@ -95,7 +112,7 @@ let restoring = false; // the new tab put back after a failed swap must not be s
 chrome.tabs.onCreated.addListener(async tab => {
   if (restoring || !/^chrome:\/\/new-?tab/.test(tab.pendingUrl || tab.url)) return;
   if (tab.index === 0) return; // the only tab of a new window: closing it would close the window (index > 0 proves a sibling without another round trip)
-  const { swapNewTab } = await chrome.storage.sync.get({ swapNewTab: true }); // options page off switch
+  await settings; // cached after the first start: the close shouldn't wait on storage
   if (!swapNewTab) return;
   await chrome.tabs.remove(tab.id); // the new tab is already painted by now: the brief flash is the price of Cmd+T being a browser shortcut
   if (await openOverlay(tab.windowId, 'bar')) return;
