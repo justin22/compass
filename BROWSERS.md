@@ -18,7 +18,9 @@ Open Helium's settings (`Cmd+,`), find **Layout**, and set:
 
 Leave the rest off.
 
-![Helium layout settings: Vertical, tabs on the right, frameless mode on](docs/helium-layout.png)
+![Helium layout settings: Vertical, tabs on the right, frameless mode on](docs/PR/helium-layout.png)
+
+Compass's **Auto** theme follows the system's light or dark setting. Chromium does not report a custom browser theme to extensions, so if Helium's theme is dark while your system is light, choose **Dark** in Compass's options.
 
 Helium can also copy the page address itself with `Cmd+Shift+C`: under **Appearance**, **Behavior**, choose what that key does. Compass's own Copy URL is for Chrome, where that key opens Inspect element.
 

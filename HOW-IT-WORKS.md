@@ -6,10 +6,12 @@ Compass has no server and no database. Everything it does is built from things y
 
 The sidebar is a small HTML page, `sidebar.html`. Chrome can show it two ways, and Compass uses both:
 
-- **Floating**: Compass drops a `<dialog>` over the page you are on, with the sidebar page inside it in an iframe. Press Escape or click the page and the dialog is removed.
+- **Floating**: Compass drops a `<dialog>` over the page you are on, with the sidebar page inside it in an iframe. Press Escape or click the page and the dialog closes.
 - **Docked**: the same page in Chrome's own side panel, the one you also get from the toolbar menu. It stays open while you switch tabs.
 
 The command bar and the tab switcher are the same trick, with `bar.html` and `switch.html` in the dialog instead.
+
+Closing the floating bar or sidebar does not throw the page away straight away. Compass keeps it hidden for a few minutes in the tab you are on, so opening it again is instant instead of building the list from scratch. Switching away for more than a few seconds lets it go, and the tab switcher and peek are always built fresh.
 
 Chrome does not let extensions draw on its own pages (`chrome://` addresses, the Web Store). On those, the bar falls back to the toolbar popup and the sidebar to the docked panel.
 
@@ -68,13 +70,13 @@ The sidebar's **Close other tabs** button goes through the same archive step bef
 
 ## The command bar replaces the new tab
 
-`Cmd+T` belongs to Chrome, and an extension cannot take it over. So Compass watches for the blank new tab Chrome opens, closes it straight away, and shows the bar over the page you were on. The brief flash is that new tab appearing and vanishing.
+`Cmd+T` belongs to Chrome, and an extension cannot take it over. So Compass watches for the blank new tab Chrome opens, closes it straight away, and shows the bar over the page you were on. The brief flash is that new tab appearing and vanishing. The bar appears at once and grows as its favorites and results arrive.
 
 Searching is all Chrome's own APIs: open tabs, bookmarks, history, plus the archive above. Typing a site name such as `youtube` and pressing Tab searches that site directly, from a short list in `bar.js`.
 
 ## Tab switcher previews
 
-Four hundred milliseconds after you switch to a tab, or a page finishes loading, Compass takes a picture of it, shrinks it to 640 pixels wide, and keeps it in session memory. The switcher shows those pictures, and so does the floating sidebar when you rest the mouse on a tab. A tab you have not looked at since the browser started has no picture yet, so it shows its icon instead.
+Four hundred milliseconds after you switch to a tab, or a page finishes loading, Compass takes a picture of it, shrinks it to 640 pixels wide, and keeps it in session memory. The switcher shows those pictures. A tab you have not looked at since the browser started has no picture yet, so it shows its icon instead.
 
 Pictures are dropped when their tab closes and all of them vanish when the browser closes. They never touch the disk.
 
@@ -90,9 +92,11 @@ Peek shows the linked page inside a frame drawn over the page you are on, like t
 
 The switches are saved in Chrome's synced extension storage, so they follow your Chrome account. A switch that was never touched counts as on.
 
+The theme choice is saved there too. **Auto** follows the system colour scheme and updates when it changes; **Light** and **Dark** pin one. Chromium does not tell extensions what custom browser theme is installed, so Auto cannot follow a browser theme that differs from the system.
+
 ## The left edge
 
-A tiny script in every page watches the mouse. Rest it within eight pixels of the left edge for 150 milliseconds and the script asks Compass to open the floating sidebar. If the mouse leaves the page through its left side, as it does when browser controls sit between the page and the screen edge, it opens at once, since there is no edge to rest on. If the sidebar is already docked, nothing happens.
+A tiny script in every page watches the mouse. Rest it within eight pixels of the left edge for 40 milliseconds and the script asks Compass to open the floating sidebar. If the mouse leaves the page through its left side, as it does when browser controls sit between the page and the screen edge, it opens at once, since there is no edge to rest on. If the sidebar is already docked, nothing happens.
 
 ## Where things live
 
