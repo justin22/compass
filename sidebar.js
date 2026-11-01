@@ -29,6 +29,7 @@ function setCursor(id, focus = false) {
 tabsEl.onfocusin = e => { const id = e.target.closest('li')?.dataset.id; if (id) setCursor(+id); }; // tabbing onto a row moves the cursor too
 
 if (embed) document.documentElement.classList.add('embed');
+else document.documentElement.style.colorScheme = 'light dark'; // dark scrollbars when docked; floating must not, the overlay frame is color-scheme normal and a mismatch paints it opaque
 
 const activate = t => {
   if (embed && !(t.active && t.windowId === windowId)) close(); // pick a tab and get out of the way; the current tab stays open so a double-click can rename it

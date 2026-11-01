@@ -42,6 +42,7 @@
         .scrim.sidebar { background: rgb(0 0 0 / .06); backdrop-filter: none; }
         .panel.sidebar {
           top: 8px; bottom: 8px; left: 8px; width: 280px; height: auto; border-radius: 14px; translate: none;
+          background: rgb(255 255 255 / .9); /* muted text keeps 4.5:1 even over a black page */
         }
         /* slide only after the mouse gesture (edge hover), never on the shortcut */
         .panel.sidebar.slide { translate: -12px 0; transition: opacity 200ms cubic-bezier(0.32, 0.72, 0, 1), translate 200ms cubic-bezier(0.32, 0.72, 0, 1); }
@@ -80,6 +81,7 @@
         .shot span { display: block; padding: 7px 4px 2px; font: 12px/1.3 system-ui, sans-serif; color: rgb(0 0 0 / .55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         @media (prefers-color-scheme: dark) {
           .panel:not(.peek) { background: rgb(28 28 30 / .58); border-color: rgb(255 255 255 / .12); box-shadow: 0 24px 60px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 255 255 / .08); }
+          .panel.sidebar { background: rgb(28 28 30 / .92); } /* muted text keeps 4.5:1 even over a white page */
           .pk { background: rgb(28 28 30 / .62); border-color: rgb(255 255 255 / .12); color: rgb(255 255 255 / .85); box-shadow: 0 8px 24px rgb(0 0 0 / .45), inset 0 1px 0 rgb(255 255 255 / .08); } .pk:hover:not(:disabled) { background: rgb(28 28 30 / .9); }
           .shot { background: rgb(28 28 30 / .72); border-color: rgb(255 255 255 / .12); box-shadow: 0 16px 48px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 255 255 / .08); } .shot img { outline-color: rgb(255 255 255 / .1); } .shot span { color: rgb(255 255 255 / .6); }
         }
