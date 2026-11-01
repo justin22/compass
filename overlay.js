@@ -2,13 +2,25 @@
 {
   const view = globalThis.arcBarView ?? 'bar'; // 'bar', 'sidebar', 'switch' or 'peek', set by background.js just before injecting
   const peek = globalThis.arcBarPeek; // peek: { url, key }; the key names the frame so content.js inside knows it's ours
-  const hover = globalThis.arcBarHover ?? false; // opened by resting on the left edge: no dim, leaves when the mouse does
+  let hover = globalThis.arcBarHover ?? false; // opened by resting on the left edge: no dim, leaves when the mouse does
   const key = globalThis.arcBarKey; // proves to the frame it was opened by us, and to the frame's message handler that a message is ours
+  let themePref = globalThis.arcBarTheme ?? 'auto'; // 'auto', 'light' or 'dark' from the options page
   const old = document.getElementById('arc-bar-overlay');
   const again = view === 'switch' && old?.dataset.view === 'switch'; // the switcher's shortcut again steps to the next tile
+  // a bar/sidebar closed a moment ago in this tab is still loaded: re-open that page instead of loading it from scratch
+  const warm = !again && old?.arcWarm?.(view, hover, themePref, key);
+  let open = false;
   if (again) old.arcNext();
-  else { old?.arcClose?.(view === 'peek'); old?.remove(); } // remove() also clears overlays left by an older version. A peek replacing a peek keeps the worker's new rule
-  if (!again && (view === 'peek' || old?.dataset.view !== view)) { // same shortcut again toggles it off; the other one swaps views; a new peek replaces the last
+  else if (!warm) {
+    const same = old?.dataset.visible === '1' && old.dataset.view === view && view !== 'peek';
+    if (same) old.arcClose(); // same shortcut again toggles it off
+    else {
+      if (old?.arcDispose) old.arcDispose(view === 'peek'); // remove() also clears overlays left by an older version. A peek replacing a peek keeps the worker's new rule
+      else { old?.arcClose?.(view === 'peek'); old?.remove(); } // an overlay from a version without arcDispose
+      open = view === 'peek' || old?.dataset.view !== view; // the other one swaps views; a new peek replaces the last
+    }
+  }
+  if (open) {
     // A modal <dialog> sits in the browser's top layer: above any z-index, page dialogs, popovers and fullscreen.
     const dialog = document.createElement('dialog');
     dialog.id = 'arc-bar-overlay';
@@ -19,6 +31,13 @@
     const host = document.createElement('div');
     dialog.append(host);
 
+    const dark = matchMedia('(prefers-color-scheme: dark)');
+    const setTheme = () => { host.dataset.theme = themePref === 'light' || themePref === 'dark' ? themePref : (dark.matches ? 'dark' : 'light'); };
+    const onThemeChange = (c, area) => { if (area === 'sync' && c.theme) { themePref = c.theme.newValue ?? 'auto'; setTheme(); } };
+    setTheme(); // before the style below paints
+    dark.addEventListener('change', setTheme);
+    chrome.storage.onChanged.addListener(onThemeChange);
+
     const root = host.attachShadow({ mode: 'closed' });
     root.innerHTML = `
       <style>
@@ -26,27 +45,43 @@
           position: fixed; inset: 0;
           background: rgb(0 0 0 / .18);
           backdrop-filter: blur(6px) saturate(120%);
-          opacity: 0;
+          opacity: 0; transition: opacity 110ms ease-out;
         }
         .scrim.in { opacity: 1; }
+        .scrim.closing { opacity: 0; transition-duration: 90ms; }
         .panel {
           position: fixed; top: 18vh; left: 50%; translate: -50% 0;
           width: min(640px, calc(100vw - 32px)); height: 64px; overflow: hidden;
           border-radius: 16px; border: 1px solid rgb(255 255 255 / .45);
           backdrop-filter: blur(28px) saturate(180%);
           box-shadow: 0 24px 60px rgb(0 0 0 / .22), inset 0 1px 0 rgb(255 255 255 / .5);
-          opacity: 0; /* revealed once sized; no open animation: it's opened from the keyboard */
+          opacity: 0; transform-origin: 50% 0;
+          transition: opacity 100ms ease-out, translate 140ms cubic-bezier(0.16, 1, 0.3, 1), scale 120ms cubic-bezier(0.23, 1, 0.32, 1), height 140ms cubic-bezier(0.23, 1, 0.32, 1);
         }
         .panel.in { opacity: 1; }
+        .panel.bar, .panel.peek, .panel.switch { scale: .985; }
+        .panel.bar.in, .panel.peek.in, .panel.switch.in { scale: 1; }
+        .panel.closing { opacity: 0; transition-duration: 90ms; }
+        .panel.bar.closing, .panel.peek.closing { scale: .99; }
+        .panel.switch.closing { scale: .98; }
+        /* first frame after insertion: the panel fades up from just under full size (bar/peek) */
+        @starting-style {
+          .scrim.in { opacity: 0; }
+          .panel.in { opacity: 0; }
+          .panel.bar.in, .panel.peek.in { translate: -50% -5px; scale: .985; }
+          .panel.switch.in { scale: .97; }
+          .panel.sidebar.slide.in { translate: -10px 0; }
+        }
         .scrim.sidebar { background: rgb(0 0 0 / .06); backdrop-filter: none; }
         .panel.sidebar {
-          top: 8px; bottom: 8px; left: 8px; width: 280px; height: auto; border-radius: 14px; translate: none;
+          top: 8px; bottom: 8px; left: 8px; width: 250px; height: auto; border-radius: 14px; translate: none;
         }
         /* slide only after the mouse gesture (edge hover), never on the shortcut */
-        .panel.sidebar.slide { translate: -12px 0; transition: opacity 200ms cubic-bezier(0.32, 0.72, 0, 1), translate 200ms cubic-bezier(0.32, 0.72, 0, 1); }
+        .panel.sidebar.slide { translate: -10px 0; }
         .panel.sidebar.slide.in { translate: 0 0; }
+        .panel.sidebar.slide.closing { translate: -8px 0; }
         .scrim.hover { background: transparent; }
-        .panel.switch { top: 50%; left: 50%; translate: -50% -50%; width: calc(100vw - 48px); height: calc(100vh - 48px); border-radius: 20px; } /* room to lay out, then shrinks to its tiles */
+        .panel.switch { top: 50%; left: 50%; translate: -50% -50%; width: calc(100vw - 48px); height: calc(100vh - 48px); border-radius: 20px; transform-origin: 50% 50%; transition-property: opacity, scale; } /* room to lay out, then snaps to its tiles; its size arrives once, so it isn't animated */
         .panel.peek { top: 56px; bottom: 24px; left: 50%; translate: -50% 0; width: calc(100vw - 96px); height: auto; border-radius: 14px; background: #fff; backdrop-filter: none; } /* pages expect a white canvas; room above for the close button */
         /* peek's buttons: glass discs above the panel's right edge, Back then Close, same material as the panel */
         .pk {
@@ -65,30 +100,25 @@
         .pk:focus-visible { outline: 2px solid rgb(0 122 255); outline-offset: 2px; }
         .pk svg { width: 14px; height: 14px; }
         iframe { display: block; width: 100%; height: 100%; border: 0; background: transparent; color-scheme: light dark; } /* the frame's prefers-color-scheme follows this, not the system; frame pages declare the same, or Chrome paints the frame opaque */
-        /* sidebar tab preview: a glass card like the panel, to its right, level with the row. Fades and grows in from the panel's edge; leaves faster than it came */
-        .shot {
-          position: fixed; top: 0; width: 320px; padding: 6px; box-sizing: border-box; pointer-events: none;
-          border-radius: 14px; border: 1px solid rgb(255 255 255 / .45);
-          background: rgb(255 255 255 / .72); backdrop-filter: blur(28px) saturate(180%);
-          box-shadow: 0 16px 48px rgb(0 0 0 / .2), inset 0 1px 0 rgb(255 255 255 / .5);
-          transform-origin: left center; opacity: 0; scale: .97; visibility: hidden;
-          transition: opacity 100ms cubic-bezier(0.23, 1, 0.32, 1), scale 100ms cubic-bezier(0.23, 1, 0.32, 1), visibility 0s 100ms;
-        }
-        .shot.in { opacity: 1; scale: 1; visibility: visible; transition: opacity 150ms cubic-bezier(0.23, 1, 0.32, 1), scale 150ms cubic-bezier(0.23, 1, 0.32, 1), translate 180ms cubic-bezier(0.23, 1, 0.32, 1); } /* translate: slides to the next row when the pointer moves on */
-        .shot img { display: block; width: 100%; border-radius: 9px; outline: 1px solid rgb(0 0 0 / .08); outline-offset: -1px; } /* a hairline keeps a white page from merging with the card */
-        .shot span { display: block; padding: 7px 4px 2px; font: 12px/1.3 system-ui, sans-serif; color: rgb(0 0 0 / .55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        @media (prefers-color-scheme: dark) {
-          .panel:not(.peek) { border-color: rgb(255 255 255 / .12); box-shadow: 0 24px 60px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 255 255 / .08); }
-          .pk { background: rgb(28 28 30 / .62); border-color: rgb(255 255 255 / .12); color: rgb(255 255 255 / .85); box-shadow: 0 8px 24px rgb(0 0 0 / .45), inset 0 1px 0 rgb(255 255 255 / .08); } .pk:hover:not(:disabled) { background: rgb(28 28 30 / .9); }
-          .shot { background: rgb(28 28 30 / .72); border-color: rgb(255 255 255 / .12); box-shadow: 0 16px 48px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 255 255 / .08); } .shot img { outline-color: rgb(255 255 255 / .1); } .shot span { color: rgb(255 255 255 / .75); }
-        }
-        @media (prefers-reduced-motion: reduce) { .pk:active, .pk.back:disabled { scale: 1; } .panel.sidebar.slide { translate: 0 0; transition-property: opacity; } .shot, .shot.in { scale: 1; transition-property: opacity, visibility; } } /* keep the fade, drop the movement */
+        :host([data-theme="dark"]) .scrim { background: rgb(0 0 0 / .36); }
+        :host([data-theme="dark"]) .scrim.sidebar { background: rgb(0 0 0 / .2); }
+        :host([data-theme="dark"]) .scrim.hover { background: transparent; }
+        :host([data-theme="dark"]) .panel:not(.peek) { border-color: rgb(255 255 255 / .12); box-shadow: 0 24px 60px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 255 255 / .08); } /* the frame paints the glass: its tint must match its text */
+        :host([data-theme="dark"]) .pk { background: rgb(28 28 30 / .62); border-color: rgb(255 255 255 / .12); color: rgb(255 255 255 / .85); box-shadow: 0 8px 24px rgb(0 0 0 / .45), inset 0 1px 0 rgb(255 255 255 / .08); }
+        :host([data-theme="dark"]) .pk:hover:not(:disabled) { background: rgb(28 28 30 / .9); }
+        @media (prefers-reduced-motion: reduce) {
+          .pk:active, .pk.back:disabled { scale: 1; }
+          .panel { transition-property: opacity, height; }
+          .panel.bar, .panel.peek, .panel.switch,
+          .panel.bar.closing, .panel.peek.closing, .panel.switch.closing { scale: 1; }
+          .panel.sidebar.slide, .panel.sidebar.slide.in, .panel.sidebar.slide.closing { translate: 0 0; transition-property: opacity; }
+          @starting-style { .panel.bar.in, .panel.peek.in, .panel.switch.in, .panel.sidebar.slide.in { translate: 0 0; scale: 1; } }
+        } /* keep the fades, drop the movement */
       </style>
       <div class="scrim ${view} ${hover ? 'hover' : ''}"></div>
       <div class="panel ${view} ${hover ? 'slide' : ''}"><iframe title="${{ bar: 'Command bar', sidebar: 'Sidebar', switch: 'Tab switcher', peek: 'Peek' }[view]}"></iframe></div>
       ${view === 'peek' ? `<button class="pk back" aria-label="Back" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg></button>
-      <button class="pk x" aria-label="Close peek"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>` : ''}
-      <div class="shot"><img alt=""><span></span></div>`;
+      <button class="pk x" aria-label="Close peek"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>` : ''}`;
 
     const scrim = root.querySelector('.scrim');
     const panel = root.querySelector('.panel');
@@ -101,42 +131,21 @@
     }
     else frame.src = `${chrome.runtime.getURL(`${view}.html`)}?k=${key}` + (view === 'switch' ? `&w=${innerWidth - 48}` : ''); // w: the frame's own size isn't settled when it first runs
 
-    const close = (quiet = false) => {
-      dialog.remove(); removeEventListener('message', onMessage); removeEventListener('pagehide', close); chrome.runtime.onMessage.removeListener(onPeekDo);
-      if (view === 'peek' && quiet !== true) chrome.runtime.sendMessage({ peekClosed: true }).catch(() => {}); // drop the header rule; the worker may be gone after a long peek
-    };
-    let previewGen = 0; // the latest preview request; an older shot arriving late must not reopen or overwrite the card
+    let closing = false; // a second close (Esc, scrim click) while the exit plays must not re-run it
+    let visible = true;
+    let hideTimer, expireTimer, removeTimer, hiddenTimer;
+    // focus the frame, then tell it to focus its input: a cross-origin frame can't take focus by itself.
+    // Again on load and 50ms later, in case the browser grabbed focus back while the tab switched (Cmd+T).
+    const focusFrame = () => { frame.focus(); frame.contentWindow?.postMessage({ arcBar: 'focus', k: key }, '*'); };
     const onMessage = e => {
       if (e.source !== frame.contentWindow) return; // ignore the page's own messages
       if (e.data?.arcBar === 'close') close();
-      if (e.data?.arcBar === 'preview') { // a tab row hovered in the sidebar: its shot to the right of the panel, level with the row
-        const shot = root.querySelector('.shot');
-        const gen = ++previewGen;
-        if (!e.data.id) return shot.classList.remove('in');
-        const { y } = e.data;
-        chrome.runtime.sendMessage({ shot: e.data.id }).then(d => { // through the worker, not the page: the page can read postMessage traffic
-          if (gen !== previewGen) return; // the pointer moved on (or left) meanwhile
-          if (!d?.src) return shot.classList.remove('in'); // no shot for this one: the last card shouldn't linger
-          const r = panel.getBoundingClientRect();
-          shot.querySelector('img').src = d.src;
-          shot.querySelector('span').textContent = d.url.replace(/^https?:\/\//, '');
-          shot.style.left = `${r.right + 12}px`;
-          shot.style.translate = `0 ${Math.min(r.top + y, innerHeight - 8 - Math.max(shot.offsetHeight, 240))}px`; // keep it on screen near the bottom rows (height: the last card's, near enough)
-          if (!shot.classList.contains('in')) shot.offsetHeight; // settle the position first, so the card grows in where it is rather than sliding over from the last one
-          shot.classList.add('in');
-        }, () => {});
-      }
-      if (e.data?.arcBar === 'height') {
-        if (view === 'bar') panel.style.height = `${e.data.h}px`; // sidebar is full height via CSS
-        if (view === 'switch') { panel.style.height = `${Math.min(e.data.h, innerHeight - 48)}px`; panel.style.width = `${e.data.w}px`; }
-        if (!panel.classList.contains('in')) { // reveal scrim + panel together once sized: no flash
-          panel.classList.add('in');
-          scrim.classList.add('in');
-          // focus the frame, then tell it to focus its input: a cross-origin frame can't take focus by itself.
-          // Twice, in case the browser grabbed focus back while the tab switched (Cmd+T).
-          const focusFrame = () => { frame.focus(); frame.contentWindow?.postMessage({ arcBar: 'focus', k: key }, '*'); }; // null if closed within the 50ms
-          focusFrame();
-          setTimeout(focusFrame, 50);
+      if (e.data?.arcBar === 'height' && visible && (view !== 'bar' || e.data.h > 0)) { // a hidden frame reports 0: not a height
+        if (view === 'bar') panel.style.height = `${e.data.h}px`; // animates: the bar opens at once, then grows as its list arrives
+        if (view === 'switch') {
+          panel.style.height = `${Math.min(e.data.h, innerHeight - 48)}px`;
+          panel.style.width = `${e.data.w}px`;
+          if (!panel.classList.contains('in')) { panel.classList.add('in'); scrim.classList.add('in'); } // the one view that must know its size before it shows
         }
       }
     };
@@ -153,17 +162,89 @@
       else if (m.url !== urls.at(-1)) urls.push(m.url);
       back.disabled = urls.length < 2;
     };
+    const cleanup = () => {
+      removeEventListener('message', onMessage); removeEventListener('pagehide', close); document.removeEventListener('visibilitychange', onVisibility);
+      chrome.runtime.onMessage.removeListener(onPeekDo);
+      dark.removeEventListener('change', setTheme); chrome.storage.onChanged.removeListener(onThemeChange);
+      clearTimeout(hideTimer); clearTimeout(expireTimer); clearTimeout(removeTimer); clearTimeout(hiddenTimer);
+    };
+    const dispose = (quiet = false) => {
+      if (view === 'peek' && quiet !== true) chrome.runtime.sendMessage({ peekClosed: true }).catch(() => {}); // a peek swapped for another view must not leave its header rule behind
+      cleanup(); dialog.remove();
+    };
+    const onVisibility = () => {
+      if (!document.hidden) return clearTimeout(hiddenTimer);
+      // a real tab switch lets the warm frame go; the Cmd+T swap comes back to this tab in a moment, so give it a grace period
+      if (!visible) hiddenTimer = setTimeout(dispose, 10_000);
+    };
+    // reopen a hidden frame: no page load, no module startup; the frame is told to reset its view
+    const show = () => {
+      clearTimeout(expireTimer); clearTimeout(hiddenTimer);
+      closing = false; visible = true;
+      dialog.dataset.visible = '1';
+      dialog.style.display = 'block';
+      dialog.style.pointerEvents = '';
+      panel.classList.remove('closing', 'in');
+      scrim.classList.remove('closing', 'in');
+      dialog.showModal();
+      void panel.offsetWidth; // from display:none: let @starting-style play the entry again
+      panel.classList.add('in'); scrim.classList.add('in');
+      focusFrame();
+      setTimeout(focusFrame, 50);
+      frame.contentWindow?.postMessage({ arcBar: 'show', k: key }, '*');
+    };
+    const close = (quiet = false) => {
+      if (closing) return;
+      closing = true;
+      if (view === 'peek' && quiet !== true) chrome.runtime.sendMessage({ peekClosed: true }).catch(() => {}); // drop the header rule now, not after the fade; the worker may be gone after a long peek
+      dialog.style.pointerEvents = 'none'; // the page below takes clicks again while it fades
+      panel.classList.add('closing'); scrim.classList.add('closing');
+      if (view === 'peek' || view === 'switch') {
+        cleanup();
+        removeTimer = setTimeout(() => dialog.remove(), 140); // out faster than in; remove() also drops the top layer
+        return;
+      }
+      hideTimer = setTimeout(() => {
+        dialog.close();
+        dialog.style.display = 'none';
+        dialog.dataset.visible = '0';
+        visible = false; closing = false;
+        if (view === 'bar') panel.style.height = '64px'; // the next show starts compact, not at the last search's height
+        if (document.hidden) onVisibility(); // it went to the background while fading: the visibility handler decides how long it stays
+        else expireTimer = setTimeout(dispose, 5 * 60_000); // ponytail: five minutes keeps a warm frame in the visible tab; longer would hold one per tab
+      }, 140);
+    };
+    const leaveOnHover = e => { if (e.clientX > panel.getBoundingClientRect().right + 40) close(); }; // 40px grace
     addEventListener('message', onMessage);
     dialog.arcClose = close;
+    dialog.arcDispose = dispose;
+    dialog.arcWarm = (v, h, t, k) => {
+      if (v !== view || (view !== 'bar' && view !== 'sidebar') || visible || k !== key) return false;
+      hover = h;
+      themePref = t;
+      setTheme();
+      scrim.classList.toggle('hover', hover);
+      panel.classList.toggle('slide', hover);
+      scrim.onmousemove = hover ? leaveOnHover : null;
+      show();
+      return true;
+    };
     dialog.arcNext = () => frame.contentWindow?.postMessage({ arcBar: 'next', k: key }, '*');
     scrim.onclick = close;
     root.querySelector('.pk.x')?.addEventListener('click', () => close());
-    if (hover) scrim.onmousemove = e => { if (e.clientX > panel.getBoundingClientRect().right + 40) close(); }; // 40px grace
+    if (hover) scrim.onmousemove = leaveOnHover;
+    document.addEventListener('visibilitychange', onVisibility);
     dialog.addEventListener('cancel', e => { e.preventDefault(); close(); }); // Esc while focus is on the page
+    if (view !== 'switch') { panel.classList.add('in'); scrim.classList.add('in'); } // bar and sidebar show at once: no waiting for a frame that has nothing to size
+    dialog.dataset.visible = '1';
     document.documentElement.append(dialog);
     dialog.showModal();
-    if (view === 'peek') { // no 'height' message from a foreign page: show at once, and release the rule if the page is left with the peek open
-      panel.classList.add('in'); scrim.classList.add('in');
+    if (view !== 'peek') { // peek keeps the page's focus: its close button is one Tab away
+      focusFrame();
+      setTimeout(focusFrame, 50);
+      frame.addEventListener('load', focusFrame, { once: true }); // autofocus inside a frame only takes once the frame itself is focused
+    }
+    if (view === 'peek') { // no 'height' message from a foreign page; release the rule if the page is left with the peek open
       addEventListener('pagehide', close);
       back.onclick = () => { urls.pop(); fresh = true; frame.src = urls.at(-1); back.disabled = urls.length < 2; };
       chrome.runtime.onMessage.addListener(onPeekDo); // page reports and Esc from inside the peeked page, relayed by the worker

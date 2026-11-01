@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <title>New Tab</title>
+<script src="theme.js"></script>
 <link rel="stylesheet" href="favs.css">
 <style>
-  :root { --bg: #fff; --fg: #1c1c1e; --muted: #6e6e73; --sel: rgb(0 0 0 / .06); --line: rgb(0 0 0 / .08); --tile: rgb(0 0 0 / .05); --tile-hover: rgb(0 0 0 / .1); --glass: rgb(255 255 255 / .62); }
-  @media (prefers-color-scheme: dark) { :root { --bg: #1c1c1e; --fg: #f2f2f7; --muted: #98989d; --sel: rgb(255 255 255 / .09); --line: rgb(255 255 255 / .1); --tile: rgb(255 255 255 / .07); --tile-hover: rgb(255 255 255 / .13); --glass: rgb(28 28 30 / .92); } } /* .92: muted text keeps 4.5:1 even over a white page */
+  :root { color-scheme: light dark; /* same as the overlay's iframe: a mismatch makes Chrome paint the frame opaque white */ --bg: #fff; --fg: #1c1c1e; --muted: #6b6b70; /* 4.7:1 on --sel */ --sel: rgb(0 0 0 / .06); --line: rgb(0 0 0 / .08); --tile: rgb(0 0 0 / .05); --tile-hover: rgb(0 0 0 / .1); --glass: rgb(255 255 255 / .62); }
+  :root[data-theme="dark"] { --bg: #1c1c1e; --fg: #f2f2f7; --muted: #98989d; --sel: rgb(255 255 255 / .09); --line: rgb(255 255 255 / .1); --tile: rgb(255 255 255 / .07); --tile-hover: rgb(255 255 255 / .13); --glass: rgb(28 28 30 / .92); } /* .92: muted text keeps 4.5:1 even over a white page */
   * { box-sizing: border-box; }
-  :root { color-scheme: light dark; } /* same as the overlay's iframe: a mismatch makes Chrome paint the frame opaque white */
   body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.4 system-ui, sans-serif; }
   .embed { background: var(--glass); } /* glass tint lives in the frame, not the overlay: frame and page can disagree on dark mode, and the tint must match the text */
-  .embed body { background: transparent; }
+  .embed body { background: transparent; overflow: hidden; } /* no scrollbar while the panel grows to fit */
   .bar { width: 640px; max-width: 100%; margin: 0 auto; }
-  #favs { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; padding: 12px 12px 0; }
+  #favs { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; min-height: 56px; padding: 12px 12px 0; } /* one row reserved: the search field doesn't jump down when favorites render */
   .tile { height: 44px; font-size: 18px; } /* the rest is favs.css */
   .tile img { width: 20px; height: 20px; }
   .field { display: flex; align-items: center; border-bottom: 1px solid var(--line); }
@@ -21,11 +21,14 @@
   #pill[hidden] { display: none; }
   #pill img { width: 16px; height: 16px; }
   input { flex: 1; min-width: 0; border: 0; outline: 0; padding: 16px 18px; font-size: 18px; background: transparent; color: inherit; }
+  input::placeholder { color: var(--muted); }
   #pill:not([hidden]) + input { padding-left: 10px; }
   ul { list-style: none; margin: 0; padding: 6px; max-height: 440px; overflow-y: auto; }
   li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: default; }
   li.sel { background: var(--sel); }
-  li img { width: 16px; height: 16px; flex: none; }
+  li img, li .search-icon { width: 16px; height: 16px; flex: none; }
+  li .search-icon { display: grid; place-items: center; color: var(--muted); }
+  li .search-icon svg { width: 16px; height: 16px; }
   li .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   li .k { color: var(--muted); font-size: 12px; flex: none; }
 </style>

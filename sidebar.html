@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <title>Tabs</title>
+<script src="theme.js"></script>
 <link rel="stylesheet" href="favs.css">
 <style>
-  :root { --bg: #ececef; --fg: #1c1c1e; --muted: #65656a; /* 4.9:1 on --bg: 12px text needs 4.5 */ --hover: rgb(0 0 0 / .05); --active: #fff; --tile: rgb(0 0 0 / .05); --tile-hover: rgb(0 0 0 / .09); --shadow: 0 1px 2px rgb(0 0 0 / .1); --danger: #d70015; /* 4.6:1 on --bg; the brighter iOS red is 3:1 */ --glass: rgb(255 255 255 / .9); /* muted text keeps 4.5:1 even over a black page */ }
-  @media (prefers-color-scheme: dark) { :root { --bg: #1e1e20; --fg: #f2f2f7; --muted: #98989d; --hover: rgb(255 255 255 / .05); --active: rgb(255 255 255 / .1); --tile: rgb(255 255 255 / .06); --tile-hover: rgb(255 255 255 / .11); --shadow: none; --danger: #ff6961; /* the iOS red is 4:1 on the floating glass */ --glass: rgb(28 28 30 / .92); } }
-  :root { color-scheme: light dark; } /* same as the overlay's iframe: a mismatch makes Chrome paint the frame opaque white */
+  :root { color-scheme: light dark; /* same as the overlay's iframe: a mismatch makes Chrome paint the frame opaque white */ --bg: #ececef; --fg: #1c1c1e; --muted: #626267; /* 5.1:1 on --bg, 4.6 on --tile: 12px text needs 4.5 */ --hover: rgb(0 0 0 / .05); --active: #fff; --tile: rgb(0 0 0 / .05); --tile-hover: rgb(0 0 0 / .09); --shadow: 0 1px 2px rgb(0 0 0 / .1); --danger: #c90014; /* 4.6:1 on a hovered row; the brighter iOS red is 3:1 */ --glass: rgb(255 255 255 / .9); /* muted text keeps 4.5:1 even over a black page */ }
+  :root[data-theme="dark"] { --bg: #1e1e20; --fg: #f2f2f7; --muted: #98989d; --hover: rgb(255 255 255 / .05); --active: rgb(255 255 255 / .1); --tile: rgb(255 255 255 / .06); --tile-hover: rgb(255 255 255 / .11); --shadow: none; --danger: #ff6961; /* the iOS red is 4:1 on the floating glass */ --glass: rgb(28 28 30 / .92); }
   * { box-sizing: border-box; }
   body { margin: 0; padding: 10px 8px 48px; /* bottom: room so the last tab isn't hidden under the footer */ background: var(--bg); color: var(--fg); font: 13px/1.3 system-ui, sans-serif; user-select: none; }
   .embed { background: var(--glass); } /* glass tint lives in the frame, not the overlay: frame and page can disagree on dark mode, and the tint must match the text */
@@ -38,8 +38,8 @@
   #dock:hover { background: var(--hover); color: var(--fg); }
   #dock svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   html:not(.embed) #dock svg { fill: currentColor; } /* filled pin = docked */
-  .new { display: flex; align-items: center; gap: 10px; width: 100%; height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--muted); font: inherit; text-align: left; }
-  .new:hover { background: var(--hover); }
+  .new { display: flex; align-items: center; gap: 10px; width: 100%; height: 34px; padding: 0 10px; border: 0; border-block: 2px solid transparent; border-radius: 8px; background-color: transparent; background-clip: padding-box; color: var(--muted); font: inherit; text-align: left; }
+  .new:hover { background-color: var(--hover); }
   /* footer, stuck to the bottom: Clear (trash, asks on the button first) left; New folder and Activity right */
   #foot { position: fixed; left: 8px; right: 8px; bottom: 8px; display: flex; pointer-events: none; } /* clicks between the buttons reach the tabs */
   #foot button { position: relative; pointer-events: auto; display: flex; align-items: center; gap: 6px; height: 30px; min-width: 30px; padding: 0 7px; border: 0; border-radius: 8px; background: none; color: var(--muted); font: inherit; font-size: 12px; font-weight: 500;
@@ -64,20 +64,20 @@
   #clear.confirm span { animation-name: ask-slide; }
   @keyframes ask { from { opacity: 0; filter: blur(2px); } }
   @keyframes ask-slide { from { opacity: 0; filter: blur(2px); translate: -4px 0; } }
-  #new { margin-bottom: 2px; } /* keeps its hover apart from the tab cursor row below */
+  #new { margin-top: 1px; } /* keeps its hover apart from the last tab row above */
   .rename { padding: 2px 4px; margin-left: -4px; border: 0; outline: 0; border-radius: 4px; background: var(--tile); color: var(--fg); font: inherit; user-select: text; }
   .new span { width: 16px; text-align: center; font-size: 16px; line-height: 1; }
 
   ul { list-style: none; margin: 0; padding: 0; }
-  .list li { position: relative; display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 6px 0 10px; border-radius: 8px; }
-  .list li.cursor, #pinned li:not(.active):hover { background: var(--hover); } /* mouse and ↑↓ share one highlight */
-  .list li.active { background: var(--active); box-shadow: var(--shadow); }
+  .list li { position: relative; display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 6px 0 10px; border-block: 2px solid transparent; border-radius: 8px; background-clip: padding-box; } /* the transparent borders keep the hover blob off its neighbours */
+  .list li.cursor, #pinned li:not(.active):hover { background-color: var(--hover); } /* mouse and ↑↓ share one highlight */
+  .list li.active { background-color: var(--active); box-shadow: var(--shadow); }
   #pinbox { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid rgb(128 128 128 / .2); } /* Pinned and its folders, above the open tabs */
   #pinned li.closed { color: var(--muted); } /* saved, but no tab open */
   #pinned .folder svg { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   #pinned .drop, #pinned.drop { box-shadow: inset 0 0 0 1.5px rgb(128 128 128 / .45); } /* where a dragged tab will land */
   #pinned.drop { border-radius: 8px; }
-  #pinned li.drop { background: var(--tile-hover); }
+  #pinned li.drop { background-color: var(--tile-hover); }
   .list li.dragging.into { scale: .94; opacity: .85; } /* shrinks a little over a folder: going in */
   .list .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .list li.marquee .t { text-overflow: clip; }
@@ -89,7 +89,7 @@
     .list li:hover .x, .list li:focus-within .x { visibility: visible; } /* hidden also drops them from the tab order: show while tabbing through */
   }
   .list button.t { border: 0; padding: 0; background: none; color: inherit; font: inherit; text-align: left; outline: 0; } /* the row is the focus indicator */
-  .list li:has(.t:focus-visible) { background: var(--hover); box-shadow: inset 0 0 0 1.5px var(--muted); } /* the tint alone is 1.2:1; the ring is 3:1+ */
+  .list li:has(.t:focus-visible) { background-color: var(--hover); box-shadow: inset 0 0 0 1.5px var(--muted); } /* the tint alone is 1.2:1; the ring is 3:1+ */
   .list .pin-btn { display: grid; place-items: center; }
   .list .pin-btn svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   #menu, #activity { position: fixed; inset: auto; margin: 0; padding: 4px; border: 1px solid rgb(128 128 128 / .2); border-radius: 10px; background: var(--bg); color: var(--fg); box-shadow: 0 8px 24px rgb(0 0 0 / .16);
@@ -100,9 +100,9 @@
   #menu button:hover, #menu button:focus-visible { background: var(--hover); outline: 0; }
   /* the button whose popover is open stays lit and shown: the footer's chart icon (no tooltip: hovering it opens the real thing), a row's ⋯ */
   body:has(#activity:popover-open) #activity-btn, .list .x.open { background: var(--hover); color: var(--fg); visibility: visible; }
-  #pinned li:has(.x.open) { background: var(--hover); }
+  #pinned li:has(.x.open) { background-color: var(--hover); }
   /* Activity: what Compass keeps and does, above the footer's chart icon. Muted labels, firm values; a section's one action sits in its header */
-  #activity { right: 8px; bottom: 46px; width: 248px; padding: 6px 12px 10px; font-size: 12px; transform-origin: bottom right; outline: 0; }
+  #activity { right: 8px; bottom: 46px; width: min(248px, calc(100% - 16px)); padding: 6px 12px 10px; font-size: 12px; transform-origin: bottom right; outline: 0; } /* narrower floating sidebar: keep the popover inside it */
   #activity .sec { display: flex; justify-content: space-between; align-items: baseline; margin: 10px 0 2px; color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
   #activity .sec:first-child { margin-top: 4px; }
   #activity .sec button { margin-right: -5px; padding: 1px 5px; border: 0; border-radius: 4px; background: none; color: var(--muted); font: inherit; font-size: 11px; font-weight: 500; text-transform: none; letter-spacing: 0; }
@@ -121,7 +121,7 @@
 
   /* reorder: neighbours slide aside to preview the drop; the dragged row follows the pointer 1:1 */
   .list.reordering li { transition: translate 200ms cubic-bezier(0.23, 1, 0.32, 1); }
-  .list li.dragging { z-index: 1; background: var(--active); box-shadow: 0 6px 18px rgb(0 0 0 / .14), 0 1px 2px rgb(0 0 0 / .08); scale: 1.02; cursor: grabbing;
+  .list li.dragging { z-index: 1; background-color: var(--active); box-shadow: 0 6px 18px rgb(0 0 0 / .14), 0 1px 2px rgb(0 0 0 / .08); scale: 1.02; cursor: grabbing;
                       transition: scale 150ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 150ms cubic-bezier(0.23, 1, 0.32, 1); }
   .list li.settling { z-index: 1; transition: translate 150ms cubic-bezier(0.23, 1, 0.32, 1), scale 150ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 150ms cubic-bezier(0.23, 1, 0.32, 1); }
   @media (prefers-reduced-motion: reduce) { /* keep the color fade, drop the press scale */
@@ -154,8 +154,8 @@
 <div id="pinbox">
   <ul id="pinned" class="list"></ul>
 </div>
-<button id="new" class="new"><span>+</span>New Tab</button>
 <ul id="tabs" class="list" aria-label="Open tabs"></ul>
+<button id="new" class="new"><span aria-hidden="true">+</span>New tab</button>
 <div id="foot">
   <button id="clear" aria-label="Close other tabs" data-tip="Close other tabs">
     <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg><span></span>
