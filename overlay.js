@@ -168,7 +168,7 @@
       panel.classList.add('in'); scrim.classList.add('in');
       addEventListener('pagehide', close);
       back.onclick = () => { urls.pop(); fresh = true; frame.src = urls.at(-1); back.disabled = urls.length < 2; };
-      root.querySelector('.pk.tab').onclick = () => { open(urls.at(-1), '_blank'); close(); }; // the page the frame is on now, not the link that started the peek
+      root.querySelector('.pk.tab').onclick = () => { open(urls.at(-1), '_blank', 'noopener'); close(); }; // the page the frame is on now, not the link that started the peek. noopener: the new tab mustn't be able to steer this page
       chrome.runtime.onMessage.addListener(onPeekDo); // page reports and Esc from inside the peeked page, relayed by the worker
     }
   }

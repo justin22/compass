@@ -33,7 +33,7 @@ Shortcuts are written for Mac. On Windows and Linux, read `Cmd` as `Ctrl`. Chang
 
 ### Command bar
 
-`Cmd+T`, or click the Compass icon in the toolbar. A search box that pops up over the page. Cmd+T closes the blank new tab and opens the bar over the page you were on instead, so you may see a brief flash. It searches open tabs, bookmarks, history and archived tabs in one list. A web address opens, anything else searches the web.
+`Cmd+T`, or click the Compass icon in the toolbar. A search box that pops up over the page. Cmd+T closes the blank new tab and opens the bar over the page you were on instead, so you may see a brief flash. It searches open tabs, bookmarks, history and archived tabs in one list. A web address opens, anything else searches the web. An email address searches too, with a second row that opens its domain.
 
 - Press Enter on an empty bar to jump back to the last tab you were on.
 - Type a site name like `yt` or `reddit`, press Tab, and search that site directly. About a dozen popular sites are built in.
