@@ -5,7 +5,7 @@ export const favicon = url => chrome.runtime.getURL(`/_favicon/?pageUrl=${encode
 
 // "did they type an address or a search?", shared by the bar and the sidebar's address field
 export const hasScheme = q => /^[a-z]+:\/\//i.test(q);
-export const looksLikeUrl = q => hasScheme(q) || /^localhost(:\d+)?(\/\S*)?$/.test(q) || /^[^\s/]+\.[a-z]{2,}(:\d+)?(\/\S*)?$/i.test(q);
+export const looksLikeUrl = q => hasScheme(q) || /^localhost(:\d+)?(\/\S*)?$/.test(q) || /^[^\s/@]+\.[a-z]{2,}(:\d+)?(\/\S*)?$/i.test(q);
 
 async function bmFolder(title, key) {
   // remember the folder by id: a title search can land on another "Favorites" folder (Safari imports ship one)
