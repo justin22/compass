@@ -6,7 +6,7 @@
 
 A command bar and sidebar for Chrome and other Chromium browsers (Helium, Edge, Brave). It borrows the parts of Arc that were worth keeping: one search box for everything, a sidebar that stays out of the way, and old tabs that clean themselves up.
 
-Chrome extension, no build step, no dependencies.
+Chrome extension, no build step, no dependencies. [Get it on the Chrome Web Store](https://chromewebstore.google.com/detail/compass/ahpbbekihlkbjfnohmahllnadimphfba).
 
 [Highlights](#highlights) · [What it does](#what-it-does) · [How it works](HOW-IT-WORKS.md) · [Install](#install) · [Browser settings](BROWSERS.md) · [Files](#files) · [Test](#test) · [Contributing](#contributing) · [Things to know](#things-to-know)
 
@@ -106,9 +106,13 @@ Every 30 minutes, tabs you have not touched in 12 hours close on their own. Swit
 
 ## Install
 
-Compass is not on the Chrome Web Store. You load it from a folder on your computer. Works in Helium, Chrome, Edge and Brave.
+**From the Chrome Web Store**
 
-**Get the code**
+Install [Compass from the Chrome Web Store](https://chromewebstore.google.com/detail/compass/ahpbbekihlkbjfnohmahllnadimphfba). It works in Helium, Chrome, Edge and Brave, and updates on its own. Then press `Cmd+Shift+S` on any web page. The sidebar should slide in.
+
+**From source**
+
+If you'd rather run the code straight from this repo, load it from a folder on your computer.
 
 Click the green **Code** button at the top of this page, then **Download ZIP**. Unzip it somewhere you will keep it. The browser loads the extension from this folder every time it starts, so don't delete or move it afterwards.
 
