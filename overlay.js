@@ -48,7 +48,7 @@
         .scrim.hover { background: transparent; }
         .panel.switch { top: 50%; left: 50%; translate: -50% -50%; width: calc(100vw - 48px); height: calc(100vh - 48px); border-radius: 20px; } /* room to lay out, then shrinks to its tiles */
         .panel.peek { top: 56px; bottom: 24px; left: 50%; translate: -50% 0; width: calc(100vw - 96px); height: auto; border-radius: 14px; background: #fff; backdrop-filter: none; } /* pages expect a white canvas; room above for the close button */
-        /* peek's buttons: glass discs above the panel's right edge, Back then Close, same material as the panel */
+        /* peek's buttons: glass discs above the panel's right edge, Back, Open as tab, Close, same material as the panel */
         .pk {
           position: fixed; top: 12px; width: 32px; height: 32px; display: grid; place-items: center; padding: 0; cursor: pointer;
           border-radius: 50%; border: 1px solid rgb(255 255 255 / .45); color: rgb(0 0 0 / .7);
@@ -57,7 +57,8 @@
           transition: scale 160ms cubic-bezier(0.23, 1, 0.32, 1), background-color 150ms ease, opacity 150ms ease;
         }
         .pk.x { right: 48px; }
-        .pk.back { right: 88px; }
+        .pk.tab { right: 88px; }
+        .pk.back { right: 128px; } /* outermost, so its slot leaves no gap while it's hidden */
         /* Back is only there once there's somewhere to go: grows in from nearly its size, leaves quicker than it came */
         .pk.back:disabled { opacity: 0; scale: .9; visibility: hidden; transition: opacity 100ms cubic-bezier(0.23, 1, 0.32, 1), scale 100ms cubic-bezier(0.23, 1, 0.32, 1), visibility 0s 100ms; }
         .pk:hover:not(:disabled) { background: rgb(255 255 255 / .9); }
@@ -87,6 +88,7 @@
       <div class="scrim ${view} ${hover ? 'hover' : ''}"></div>
       <div class="panel ${view} ${hover ? 'slide' : ''}"><iframe title="${{ bar: 'Command bar', sidebar: 'Sidebar', switch: 'Tab switcher', peek: 'Peek' }[view]}"></iframe></div>
       ${view === 'peek' ? `<button class="pk back" aria-label="Back" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg></button>
+      <button class="pk tab" aria-label="Open as tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg></button>
       <button class="pk x" aria-label="Close peek"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>` : ''}
       <div class="shot"><img alt=""><span></span></div>`;
 
@@ -166,6 +168,7 @@
       panel.classList.add('in'); scrim.classList.add('in');
       addEventListener('pagehide', close);
       back.onclick = () => { urls.pop(); fresh = true; frame.src = urls.at(-1); back.disabled = urls.length < 2; };
+      root.querySelector('.pk.tab').onclick = () => { open(urls.at(-1), '_blank', 'noopener'); close(); }; // the page the frame is on now, not the link that started the peek. noopener: the new tab mustn't be able to steer this page
       chrome.runtime.onMessage.addListener(onPeekDo); // page reports and Esc from inside the peeked page, relayed by the worker
     }
   }

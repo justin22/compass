@@ -55,6 +55,8 @@ async function search(q) {
   const action = looksLikeUrl(q)
     ? { kind: 'Open', title: q, url: hasScheme(q) ? q : `https://${q}` }
     : { kind: 'Search', title: q };
+  const domain = q.match(/^[^\s@/]+@([^\s@/]+\.[a-z]{2,})$/i)?.[1]; // an email: search it, and offer its domain like the omnibox does
+  const actions = domain ? [action, { kind: 'Open', title: domain, url: `https://${domain}` }] : [action];
   const seen = new Set(out.map(x => x.url));
   const [bookmarks, history, { archive = [] }] = await Promise.all([
     chrome.bookmarks.search(q),
@@ -67,7 +69,7 @@ async function search(q) {
     ...history.map(h => ({ kind: 'History', title: h.title || h.url, url: h.url })),
   ].filter(x => !seen.has(x.url) && seen.add(x.url));
 
-  return [...siteRow, ...out, action, ...rest].slice(0, 50);
+  return [...siteRow, ...out, ...actions, ...rest].slice(0, 50);
 }
 
 function render() {

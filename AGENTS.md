@@ -64,7 +64,7 @@ Arc-style command bar and sidebar, as a Manifest V3 Chrome extension. Built for 
 
 ## Checking changes
 
-- `node archive.test.mjs` prints `archive ok`. The only automated check.
+- `node archive.test.mjs` prints `archive ok` and `node favs.test.mjs` prints `favs ok`. The only automated checks.
 - `node --check <file>.js` for syntax.
 - Everything else is manual: reload the extension at `chrome://extensions` and try it. Say so when you haven't.
 

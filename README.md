@@ -33,7 +33,7 @@ Shortcuts are written for Mac. On Windows and Linux, read `Cmd` as `Ctrl`. Chang
 
 ### Command bar
 
-`Cmd+T`, or click the Compass icon in the toolbar. A search box that pops up over the page. Cmd+T closes the blank new tab and opens the bar over the page you were on instead, so you may see a brief flash. It searches open tabs, bookmarks, history and archived tabs in one list. A web address opens, anything else searches the web.
+`Cmd+T`, or click the Compass icon in the toolbar. A search box that pops up over the page. Cmd+T closes the blank new tab and opens the bar over the page you were on instead, so you may see a brief flash. It searches open tabs, bookmarks, history and archived tabs in one list. A web address opens, anything else searches the web. An email address searches too, with a second row that opens its domain.
 
 - Press Enter on an empty bar to jump back to the last tab you were on.
 - Type a site name like `yt` or `reddit`, press Tab, and search that site directly. About a dozen popular sites are built in.
@@ -92,7 +92,7 @@ Open a link in a background tab (`Cmd+click`) and a small "New tab opened" note 
 
 ![A Reddit post opened in a peek panel over the page, with a close button above its corner](docs/store-assets/08-peek.jpg)
 
-`Shift+click` a link, or right-click it and choose **Peek**. The page opens in a panel over the one you are on, so you never leave it. Close it with the × above the panel, a click outside it, or `Esc`. `Shift+click` a link inside a peek and the peek goes to that page; a ← button appears next to the × to take you back, or use the browser's back shortcut. Peeks don't stack: `Shift+click` on the page behind swaps the peek for the new link and starts over. Some sites show their signed-out page in a peek, and a few refuse to load at all; open those in a tab as usual.
+`Shift+click` a link, or right-click it and choose **Peek**. The page opens in a panel over the one you are on, so you never leave it. Close it with the × above the panel, a click outside it, or `Esc`. The ↗ button opens the peeked page in a new tab and closes the peek. `Shift+click` a link inside a peek and the peek goes to that page; a ← button appears next to the × to take you back, or use the browser's back shortcut. Peeks don't stack: `Shift+click` on the page behind swaps the peek for the new link and starts over. Some sites show their signed-out page in a peek, and a few refuse to load at all; open those in a tab as usual.
 
 ### Settings
 
